@@ -8,21 +8,87 @@
 // @run-at document-end
 // ==/UserScript==
 
-            $(function() {
-              $( "#slider-range-min" ).slider({
+//Changes the slider to be x=(y³3/100³)*b instead of x=(y/100)*b
+//Where x = wager, y = slider distance (0->100) and b = balance
+$(function() {
+	$( "#slider-range-min" ).slider({
                 range: "min",
                 value: 0,
                 min: 0,
                 max: 0,
                 animate: "fast",
-                slide: function( event, ui ) {
-                  var pct = ui.value / $( "#balance" ).text();
-                  pct = pct * 100;
-                  $( "#wager" ).val(Math.round((Math.pow(pct, 3)/1000000)*$( "#balance" ).text()));
+                slide: function( event, ui ) {var 
+                	pct = ui.value / $( "#balance" ).text();
+                  	pct = pct * 100;
+                  	$( "#wager" ).val(Math.round((Math.pow(pct, 3)/1000000)*$( "#balance" ).text()));
                 }
-              });
-            });
-            
+     	});
+});
+
+function callback(i){
+    return function(){
+    localStorage["sbbtnrr"+i] = $("#rr").val();
+    localStorage["sbbtnrg"+i] = $("#rg").val();  
+    localStorage["sbbtnrb"+i] = $("#rb").val();  
+    localStorage["sbbtnbr"+i] = $("#br").val();  
+    localStorage["sbbtnbg"+i] = $("#bg").val();  
+    localStorage["sbbtnbb"+i] = $("#bb").val();  
+    makeButtons();
+    }
+}
+
+function callbackDol(i){
+    return function(){
+        localStorage["sbbtn"+i+"val"] = $("#but"+i+"val").val();  
+        localStorage["sbbtn"+i+"typ"] = "$";
+        makeButtons();
+    }
+}
+
+function callbackPer(i){
+    return function(){
+        localStorage["sbbtn"+i+"val"] = $("#but"+i+"val").val();  
+        localStorage["sbbtn"+i+"typ"] = "%";
+        makeButtons();
+    }
+}
+
+function callbackRed(i){
+    return function(){
+        if( localStorage["sbbtn"+i+"typ"] == "$"){
+            var salt=parseInt(localStorage["sbbtn"+i+"val"]);
+            if( localStorage["sbbtn"+i+"val"][0] === "+" || localStorage["sbbtn"+i+"val"][0] === "-"){ $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0); } else {  $("input#wager").val(parseInt(salt) | 0); }
+            document.getElementsByName("player1")[0].click();
+        } else {
+            var pct=parseFloat(localStorage["sbbtn"+i+"val"]);
+            if( localStorage["sbbtn"+i+"val"][0] === "+" || localStorage["sbbtn"+i+"val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
+            document.getElementsByName("player1")[0].click();
+        }        
+    }
+}
+
+function callbackBlu(i){
+    return function(){
+        if( localStorage["sbbtn"+i+"typ"] == "$"){
+            var salt=parseInt(localStorage["sbbtn"+i+"val"]);
+            if( localStorage["sbbtn"+i+"val"][0] === "+" || localStorage["sbbtn"+i+"val"][0] === "-"){ $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0); } else {  $("input#wager").val(parseInt(salt) | 0); }
+            document.getElementsByName("player2")[0].click();
+        } else {
+            var pct=parseFloat(localStorage["sbbtn"+i+"val"]);
+            if( localStorage["sbbtn"+i+"val"][0] === "+" || localStorage["sbbtn"+i+"val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
+            document.getElementsByName("player2")[0].click();
+        }        
+    }
+}
+
+for( i = 1; i < 13; i++){
+    $('#but'+i).live('mousedown', callback( i ) );
+    $('#but'+i+'dol').live('mousedown', callbackDol( i ) );
+    $('#but'+i+'per').live('mousedown', callbackPer( i ) );
+    $('#redbtn'+i).live('mousedown', callbackRed( i ) ).live('contextmenu', function(e){ e.preventDefault();});
+    $('#blubtn'+i).live('mousedown', callbackBlu( i ) ).live('contextmenu', function(e){ e.preventDefault();});
+}
+
 $('#hoverred').live({
   mouseenter: function(){ if(JSON.parse(localStorage["sbHover"]) === true ) { $('#hoverbuttonred').removeClass('hidden'); } }, 
   mouseleave: function(){ if(JSON.parse(localStorage["sbHover"]) === true ) { $('#hoverbuttonred').addClass('hidden'); } }
@@ -35,24 +101,6 @@ $('#hoverblu').live({
   }
 );
 
-function callback(i){ 
-    //console.log(i);
-    return function(){
-    localStorage["sbbtnrr"+i] = $("#rr").val();
-    localStorage["sbbtnrg"+i] = $("#rg").val();  
-    localStorage["sbbtnrb"+i] = $("#rb").val();  
-    localStorage["sbbtnbr"+i] = $("#br").val();  
-    localStorage["sbbtnbg"+i] = $("#bg").val();  
-    localStorage["sbbtnbb"+i] = $("#bb").val();  
-    makeButtons();
-    }
-}
-
-for( i = 1; i < 13; i++){
-    $('#but' + i).live('mousedown', callback( i ) );
-}
-            
-
 $("#p1name").live('mousedown', function(e) { 
     $( "#redsbbuttonblock" ).toggle();
     $( "#blusbbuttonblock" ).toggle();
@@ -63,164 +111,6 @@ $("#p2name").live('mousedown', function(e) {
     $( "#blusbbuttonblock" ).toggle();
 });
 
-$("#but1dol").live('mousedown', function(){
-    localStorage["sbbtn4val"] = $("#but1val").val();  
-    localStorage["sbbtn4typ"] = "$";
-    makeButtons();
-});
-
-$("#but1per").live('mousedown', function(){
-    localStorage["sbbtn4val"] = $("#but1val").val();  
-    localStorage["sbbtn4typ"] = "%";
-    makeButtons();
-});
-
-$("#but2dol").live('mousedown', function(){
-    localStorage["sbbtn5val"] = $("#but2val").val();  
-    localStorage["sbbtn5typ"] = "$";
-    makeButtons();
-});
-
-$("#but2per").live('mousedown', function(){
-    localStorage["sbbtn5val"] = $("#but2val").val();  
-    localStorage["sbbtn5typ"] = "%";
-    makeButtons();
-});
-
-$("#but3dol").live('mousedown', function(){
-    localStorage["sbbtn6val"] = $("#but3val").val();  
-    localStorage["sbbtn6typ"] = "$";
-    makeButtons();
-});
-
-$("#but3per").live('mousedown', function(){
-    console.log("test");
-    localStorage["sbbtn6val"] = $("#but3val").val();  
-    localStorage["sbbtn6typ"] = "%";
-    makeButtons();
-});
-
-$("#but4dol").live('mousedown', function(){
-    console.log("test");
-    localStorage["sbbtn1val"] = $("#but4val").val();  
-    localStorage["sbbtn1typ"] = "$";
-    makeButtons();
-});
-
-$("#but4per").live('mousedown', function(){
-    console.log("test");
-    localStorage["sbbtn1val"] = $("#but4val").val();  
-    localStorage["sbbtn1typ"] = "%";
-    makeButtons();
-});
-
-$("#but5dol").live('mousedown', function(){
-    console.log("test");
-    localStorage["sbbtn2val"] = $("#but5val").val();  
-    localStorage["sbbtn2typ"] = "$";
-    makeButtons();
-});
-
-$("#but5per").live('mousedown', function(){
-    console.log("test");
-    localStorage["sbbtn2val"] = $("#but5val").val();  
-    localStorage["sbbtn2typ"] = "%";
-    makeButtons();
-});
-
-$("#but6dol").live('mousedown', function(){
-    console.log("test");
-    localStorage["sbbtn3val"] = $("#but6val").val();  
-    localStorage["sbbtn3typ"] = "$";
-    makeButtons();
-});
-
-$("#but6per").live('mousedown', function(){
-    console.log("test");
-    localStorage["sbbtn3val"] = $("#but6val").val();  
-    localStorage["sbbtn3typ"] = "%";
-    makeButtons();
-});
-
-$("#but7dol").live('mousedown', function(){
-    localStorage["sbbtn10val"] = $("#but7val").val();  
-    localStorage["sbbtn10typ"] = "$";
-    makeButtons();
-});
-
-$("#but7per").live('mousedown', function(){
-    localStorage["sbbtn10val"] = $("#but7val").val();  
-    localStorage["sbbtn10typ"] = "%";
-    makeButtons();
-});
-
-$("#but8dol").live('mousedown', function(){
-    localStorage["sbbtn11val"] = $("#but8val").val();  
-    localStorage["sbbtn11typ"] = "$";
-    makeButtons();
-});
-
-$("#but8per").live('mousedown', function(){
-    localStorage["sbbtn11val"] = $("#but8val").val();  
-    localStorage["sbbtn11typ"] = "%";
-    makeButtons();
-});
-
-$("#but9dol").live('mousedown', function(){
-    localStorage["sbbtn12val"] = $("#but9val").val();  
-    localStorage["sbbtn12typ"] = "$";
-    makeButtons();
-});
-
-$("#but9per").live('mousedown', function(){
-    console.log("test");
-    localStorage["sbbtn12val"] = $("#but9val").val();  
-    localStorage["sbbtn12typ"] = "%";
-    makeButtons();
-});
-
-$("#but10dol").live('mousedown', function(){
-    console.log("test");
-    localStorage["sbbtn7val"] = $("#but10val").val();  
-    localStorage["sbbtn7typ"] = "$";
-    makeButtons();
-});
-
-$("#but10per").live('mousedown', function(){
-    console.log("test");
-    localStorage["sbbtn7val"] = $("#but10val").val();  
-    localStorage["sbbtn7typ"] = "%";
-    makeButtons();
-});
-
-$("#but11dol").live('mousedown', function(){
-    console.log("test");
-    localStorage["sbbtn8val"] = $("#but11val").val();  
-    localStorage["sbbtn8typ"] = "$";
-    makeButtons();
-});
-
-$("#but11per").live('mousedown', function(){
-    console.log("test");
-    localStorage["sbbtn8val"] = $("#but11val").val();  
-    localStorage["sbbtn8typ"] = "%";
-    makeButtons();
-});
-
-$("#but12dol").live('mousedown', function(){
-    console.log("test");
-    localStorage["sbbtn9val"] = $("#but12val").val();  
-    localStorage["sbbtn9typ"] = "$";
-    makeButtons();
-});
-
-$("#but12per").live('mousedown', function(){
-    console.log("test");
-    localStorage["sbbtn9val"] = $("#but12val").val();  
-    localStorage["sbbtn9typ"] = "%";
-    makeButtons();
-});
-
 
 $("#redbtn0").live('mousedown', function(e) { 
             document.getElementsByName("player1")[0].click();
@@ -228,693 +118,6 @@ $("#redbtn0").live('mousedown', function(e) {
 
 $("#bluebtn0").live('mousedown', function(e) { 
             document.getElementsByName("player2")[0].click();
-});
-
-$("#redbtn1").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn1typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn1val"]);
-            if( localStorage["sbbtn1val"][0] === "+" || localStorage["sbbtn1val"][0] === "-"){ $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0); } else {  $("input#wager").val(parseInt(salt) | 0); }
-            document.getElementsByName("player1")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn1val"]);
-            if( localStorage["sbbtn1val"][0] === "+" || localStorage["sbbtn1val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player1")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn1typ"] == "$"){
-            localStorage["sbbtn1typ"] = "%";
-        } else {
-            localStorage["sbbtn1typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn1val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#redbtn2").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn2typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn2val"]);
-            if( localStorage["sbbtn2val"][0] === "+" || localStorage["sbbtn2val"][0] === "-"){
-                $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);
-            } else {
-                $("input#wager").val(parseInt(salt) | 0);
-            }
-            document.getElementsByName("player1")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn2val"]);
-            if( localStorage["sbbtn2val"][0] === "+" || localStorage["sbbtn2val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player1")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn2typ"] == "$"){
-            localStorage["sbbtn2typ"] = "%";
-        } else {
-            localStorage["sbbtn2typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn2val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#redbtn3").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn3typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn3val"]);
-            if( localStorage["sbbtn3val"][0] === "+" || localStorage["sbbtn3val"][0] === "-"){                $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);   } else { $("input#wager").val(parseInt(salt) | 0);   }
-            document.getElementsByName("player1")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn3val"]);
-            if( localStorage["sbbtn3val"][0] === "+" || localStorage["sbbtn3val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player1")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn3typ"] == "$"){
-            localStorage["sbbtn3typ"] = "%";
-        } else {
-            localStorage["sbbtn3typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn3val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#redbtn4").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn4typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn4val"]);
-            if( localStorage["sbbtn4val"][0] === "+" || localStorage["sbbtn4val"][0] === "-"){                $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);   } else { $("input#wager").val(parseInt(salt) | 0);   }
-            document.getElementsByName("player1")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn4val"]);
-            if( localStorage["sbbtn4val"][0] === "+" || localStorage["sbbtn4val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player1")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn4typ"] == "$"){
-            localStorage["sbbtn4typ"] = "%";
-        } else {
-            localStorage["sbbtn4typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn4val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#redbtn5").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn5typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn5val"]);
-            if( localStorage["sbbtn5val"][0] === "+" || localStorage["sbbtn5val"][0] === "-"){                $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);   } else { $("input#wager").val(parseInt(salt) | 0);   }
-            document.getElementsByName("player1")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn5val"]);
-            if( localStorage["sbbtn5val"][0] === "+" || localStorage["sbbtn5val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player1")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn5typ"] == "$"){
-            localStorage["sbbtn5typ"] = "%";
-        } else {
-            localStorage["sbbtn5typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn5val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#redbtn6").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn6typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn6val"]);
-            if( localStorage["sbbtn6val"][0] === "+" || localStorage["sbbtn6val"][0] === "-"){                $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);   } else { $("input#wager").val(parseInt(salt) | 0);   }
-            document.getElementsByName("player1")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn6val"]);
-            if( localStorage["sbbtn6val"][0] === "+" || localStorage["sbbtn6val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player1")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn6typ"] == "$"){
-            localStorage["sbbtn6typ"] = "%";
-        } else {
-            localStorage["sbbtn6typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn6val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#blubtn1").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn1typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn1val"]);
-            if( localStorage["sbbtn1val"][0] === "+" || localStorage["sbbtn1val"][0] === "-"){                $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);   } else { $("input#wager").val(parseInt(salt) | 0);   }
-            document.getElementsByName("player2")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn1val"]);
-            if( localStorage["sbbtn1val"][0] === "+" || localStorage["sbbtn1val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player2")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn1typ"] == "$"){
-            localStorage["sbbtn1typ"] = "%";
-        } else {
-            localStorage["sbbtn1typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn1val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#blubtn2").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn2typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn2val"]);
-            if( localStorage["sbbtn2val"][0] === "+" || localStorage["sbbtn2val"][0] === "-"){                $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);   } else { $("input#wager").val(parseInt(salt) | 0);   }
-            document.getElementsByName("player2")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn2val"]);
-            if( localStorage["sbbtn2val"][0] === "+" || localStorage["sbbtn2val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player2")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn2typ"] == "$"){
-            localStorage["sbbtn2typ"] = "%";
-        } else {
-            localStorage["sbbtn2typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn2val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#blubtn4").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn4typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn4val"]);
-            if( localStorage["sbbtn4val"][0] === "+" || localStorage["sbbtn4val"][0] === "-"){                $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);   } else { $("input#wager").val(parseInt(salt) | 0);   }
-            document.getElementsByName("player2")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn4val"]);
-            if( localStorage["sbbtn4val"][0] === "+" || localStorage["sbbtn4val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player2")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn4typ"] == "$"){
-            localStorage["sbbtn4typ"] = "%";
-        } else {
-            localStorage["sbbtn4typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn4val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#blubtn3").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn3typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn3val"]);
-            if( localStorage["sbbtn3val"][0] === "+" || localStorage["sbbtn3val"][0] === "-"){                $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);   } else { $("input#wager").val(parseInt(salt) | 0);   }
-            document.getElementsByName("player2")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn3val"]);
-            if( localStorage["sbbtn3val"][0] === "+" || localStorage["sbbtn3val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player2")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn3typ"] == "$"){
-            localStorage["sbbtn3typ"] = "%";
-        } else {
-            localStorage["sbbtn3typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn3val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#blubtn5").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn5typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn5val"]);
-            if( localStorage["sbbtn5val"][0] === "+" || localStorage["sbbtn5val"][0] === "-"){ $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);   } else { $("input#wager").val(parseInt(salt) | 0);   }
-            document.getElementsByName("player2")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn5val"]);
-            if( localStorage["sbbtn5val"][0] === "+" || localStorage["sbbtn5val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player2")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn5typ"] == "$"){
-            localStorage["sbbtn5typ"] = "%";
-        } else {
-            localStorage["sbbtn5typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn5val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#blubtn6").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn6typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn6val"]);
-            if( localStorage["sbbtn6val"][0] === "+" || localStorage["sbbtn6val"][0] === "-"){ $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);   } else { $("input#wager").val(parseInt(salt) | 0);   }
-            document.getElementsByName("player2")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn6val"]);
-            if( localStorage["sbbtn6val"][0] === "+" || localStorage["sbbtn6val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player2")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn6typ"] == "$"){
-            localStorage["sbbtn6typ"] = "%";
-        } else {
-            localStorage["sbbtn6typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn6val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-
-
-
-
-$("#redbtn7").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn7typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn7val"]);
-            if( localStorage["sbbtn7val"][0] === "+" || localStorage["sbbtn7val"][0] === "-"){ $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0); } else {  $("input#wager").val(parseInt(salt) | 0); }
-            document.getElementsByName("player1")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn7val"]);
-            if( localStorage["sbbtn7val"][0] === "+" || localStorage["sbbtn7val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player1")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn7typ"] == "$"){
-            localStorage["sbbtn7typ"] = "%";
-        } else {
-            localStorage["sbbtn7typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn7val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#redbtn8").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn8typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn8val"]);
-            if( localStorage["sbbtn8val"][0] === "+" || localStorage["sbbtn8val"][0] === "-"){
-                $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);
-            } else {
-                $("input#wager").val(parseInt(salt) | 0);
-            }
-            document.getElementsByName("player1")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn8val"]);
-            if( localStorage["sbbtn8val"][0] === "+" || localStorage["sbbtn8val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player1")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn8typ"] == "$"){
-            localStorage["sbbtn8typ"] = "%";
-        } else {
-            localStorage["sbbtn8typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn8val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#redbtn9").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn9typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn9val"]);
-            if( localStorage["sbbtn9val"][0] === "+" || localStorage["sbbtn9val"][0] === "-"){                $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);   } else { $("input#wager").val(parseInt(salt) | 0);   }
-            document.getElementsByName("player1")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn9val"]);
-            if( localStorage["sbbtn9val"][0] === "+" || localStorage["sbbtn9val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player1")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn9typ"] == "$"){
-            localStorage["sbbtn9typ"] = "%";
-        } else {
-            localStorage["sbbtn9typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn9val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#redbtn10").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn10typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn10val"]);
-            if( localStorage["sbbtn10val"][0] === "+" || localStorage["sbbtn10val"][0] === "-"){                $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);   } else { $("input#wager").val(parseInt(salt) | 0);   }
-            document.getElementsByName("player1")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn10val"]);
-            if( localStorage["sbbtn10val"][0] === "+" || localStorage["sbbtn10val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player1")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn10typ"] == "$"){
-            localStorage["sbbtn10typ"] = "%";
-        } else {
-            localStorage["sbbtn10typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn10val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#redbtn11").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn11typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn11val"]);
-            if( localStorage["sbbtn11val"][0] === "+" || localStorage["sbbtn11val"][0] === "-"){                $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);   } else { $("input#wager").val(parseInt(salt) | 0);   }
-            document.getElementsByName("player1")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn11val"]);
-            if( localStorage["sbbtn11val"][0] === "+" || localStorage["sbbtn11val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player1")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn11typ"] == "$"){
-            localStorage["sbbtn11typ"] = "%";
-        } else {
-            localStorage["sbbtn11typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn11val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#redbtn12").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn12typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn12val"]);
-            if( localStorage["sbbtn12val"][0] === "+" || localStorage["sbbtn12val"][0] === "-"){                $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);   } else { $("input#wager").val(parseInt(salt) | 0);   }
-            document.getElementsByName("player1")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn12val"]);
-            if( localStorage["sbbtn12val"][0] === "+" || localStorage["sbbtn12val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player1")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn12typ"] == "$"){
-            localStorage["sbbtn12typ"] = "%";
-        } else {
-            localStorage["sbbtn12typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn12val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#blubtn7").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn7typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn7val"]);
-            if( localStorage["sbbtn7val"][0] === "+" || localStorage["sbbtn7val"][0] === "-"){                $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);   } else { $("input#wager").val(parseInt(salt) | 0);   }
-            document.getElementsByName("player2")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn7val"]);
-            if( localStorage["sbbtn7val"][0] === "+" || localStorage["sbbtn7val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player2")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn7typ"] == "$"){
-            localStorage["sbbtn7typ"] = "%";
-        } else {
-            localStorage["sbbtn7typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn7val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#blubtn8").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn8typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn8val"]);
-            if( localStorage["sbbtn8val"][0] === "+" || localStorage["sbbtn8val"][0] === "-"){                $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);   } else { $("input#wager").val(parseInt(salt) | 0);   }
-            document.getElementsByName("player2")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn8val"]);
-            if( localStorage["sbbtn8val"][0] === "+" || localStorage["sbbtn8val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player2")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn8typ"] == "$"){
-            localStorage["sbbtn8typ"] = "%";
-        } else {
-            localStorage["sbbtn8typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn8val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#blubtn9").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn9typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn9val"]);
-            if( localStorage["sbbtn9val"][0] === "+" || localStorage["sbbtn9val"][0] === "-"){                $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);   } else { $("input#wager").val(parseInt(salt) | 0);   }
-            document.getElementsByName("player2")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn9val"]);
-            if( localStorage["sbbtn9val"][0] === "+" || localStorage["sbbtn9val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player2")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn9typ"] == "$"){
-            localStorage["sbbtn9typ"] = "%";
-        } else {
-            localStorage["sbbtn9typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn9val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#blubtn10").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn10typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn10val"]);
-            if( localStorage["sbbtn10val"][0] === "+" || localStorage["sbbtn10val"][0] === "-"){                $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);   } else { $("input#wager").val(parseInt(salt) | 0);   }
-            document.getElementsByName("player2")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn10val"]);
-            if( localStorage["sbbtn10val"][0] === "+" || localStorage["sbbtn10val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player2")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn10typ"] == "$"){
-            localStorage["sbbtn10typ"] = "%";
-        } else {
-            localStorage["sbbtn10typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn10val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#blubtn11").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn11typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn11val"]);
-            if( localStorage["sbbtn11val"][0] === "+" || localStorage["sbbtn11val"][0] === "-"){                $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);   } else { $("input#wager").val(parseInt(salt) | 0);   }
-            document.getElementsByName("player2")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn11val"]);
-            if( localStorage["sbbtn11val"][0] === "+" || localStorage["sbbtn11val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player2")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn11typ"] == "$"){
-            localStorage["sbbtn11typ"] = "%";
-        } else {
-            localStorage["sbbtn11typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn11val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#blubtn11").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn11typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn11val"]);
-            if( localStorage["sbbtn11val"][0] === "+" || localStorage["sbbtn11val"][0] === "-"){ $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);   } else { $("input#wager").val(parseInt(salt) | 0);   }
-            document.getElementsByName("player2")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn11val"]);
-            if( localStorage["sbbtn11val"][0] === "+" || localStorage["sbbtn11val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player2")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn11typ"] == "$"){
-            localStorage["sbbtn11typ"] = "%";
-        } else {
-            localStorage["sbbtn11typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn11val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
-});
-
-$("#blubtn12").live('mousedown', function(e) { 
-   if( (e.which == 1) ) {   
-        if( localStorage["sbbtn12typ"] == "$"){
-            var salt=parseInt(localStorage["sbbtn12val"]);
-            if( localStorage["sbbtn12val"][0] === "+" || localStorage["sbbtn12val"][0] === "-"){                $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0);   } else { $("input#wager").val(parseInt(salt) | 0);   }
-            document.getElementsByName("player2")[0].click();
-        } else {
-            var pct=parseFloat(localStorage["sbbtn12val"]);
-            if( localStorage["sbbtn12val"][0] === "+" || localStorage["sbbtn12val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player2")[0].click();
-        }        
-   }if( (e.which == 3) ) {   
-        if( localStorage["sbbtn12typ"] == "$"){
-            localStorage["sbbtn12typ"] = "%";
-        } else {
-            localStorage["sbbtn12typ"] = "$";
-        }
-        makeButtons();         
-   }else if( (e.which == 2) ) {   
-        localStorage["sbbtn12val"] = $("#wager").val();      
-        makeButtons();         
-   }
-   e.preventDefault();
-}).live('contextmenu', function(e){
- e.preventDefault();
 });
 
 if ( localStorage.getItem("watch") === null || localStorage.getItem("watch") === "undefined" ) {
