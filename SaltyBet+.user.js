@@ -8,7 +8,7 @@
 // @run-at document-end
 // ==/UserScript==
 
-//Changes the slider to be x=(y³3/100³)*b instead of x=(y/100)*b
+//Changes the slider to be x=(y^3/100^3)*b instead of x=(y/100)*b
 //Where x = wager, y = slider distance (0->100) and b = balance
 $(function() {
 	$( "#slider-range-min" ).slider({
@@ -25,6 +25,7 @@ $(function() {
      	});
 });
 
+//Button colouring events
 function callback(i){
     return function(){
     localStorage["sbbtnrr"+i] = $("#rr").val();
@@ -37,6 +38,7 @@ function callback(i){
     }
 }
 
+//Button set to $ Events
 function callbackDol(i){
     return function(){
         localStorage["sbbtn"+i+"val"] = $("#but"+i+"val").val();  
@@ -45,6 +47,7 @@ function callbackDol(i){
     }
 }
 
+//Button set to % Events
 function callbackPer(i){
     return function(){
         localStorage["sbbtn"+i+"val"] = $("#but"+i+"val").val();  
@@ -53,6 +56,7 @@ function callbackPer(i){
     }
 }
 
+//Buttons quick-bet red Events
 function callbackRed(i){
     return function(){
         if( localStorage["sbbtn"+i+"typ"] == "$"){
@@ -67,6 +71,7 @@ function callbackRed(i){
     }
 }
 
+//Buttons quick-bet blueEvents
 function callbackBlu(i){
     return function(){
         if( localStorage["sbbtn"+i+"typ"] == "$"){
@@ -81,6 +86,7 @@ function callbackBlu(i){
     }
 }
 
+//Loop creating all the quick-bet button events
 for( i = 1; i < 13; i++){
     $('#but'+i).live('mousedown', callback( i ) );
     $('#but'+i+'dol').live('mousedown', callbackDol( i ) );
@@ -89,6 +95,7 @@ for( i = 1; i < 13; i++){
     $('#blubtn'+i).live('mousedown', callbackBlu( i ) ).live('contextmenu', function(e){ e.preventDefault();});
 }
 
+//Events to show hover buttons
 $('#hoverred').live({
   mouseenter: function(){ if(JSON.parse(localStorage["sbHover"]) === true ) { $('#hoverbuttonred').removeClass('hidden'); } }, 
   mouseleave: function(){ if(JSON.parse(localStorage["sbHover"]) === true ) { $('#hoverbuttonred').addClass('hidden'); } }
@@ -101,6 +108,7 @@ $('#hoverblu').live({
   }
 );
 
+//Events to hide/show buttons when you click on p1/p2name
 $("#p1name").live('mousedown', function(e) { 
     $( "#redsbbuttonblock" ).toggle();
     $( "#blusbbuttonblock" ).toggle();
@@ -111,7 +119,7 @@ $("#p2name").live('mousedown', function(e) {
     $( "#blusbbuttonblock" ).toggle();
 });
 
-
+//Events to cause new BET! buttons to act like old ones
 $("#redbtn0").live('mousedown', function(e) { 
             document.getElementsByName("player1")[0].click();
 });
@@ -120,14 +128,27 @@ $("#bluebtn0").live('mousedown', function(e) {
             document.getElementsByName("player2")[0].click();
 });
 
+var isOpera = !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0;
+// Check if Opera/non-chrome blink based browser
+var isFirefox = typeof InstallTrigger !== 'undefined';
+// Check if Firefox
+var isChrome = !!window.chrome && !isOpera;
+// Check if Chrome
+
 if ( localStorage.getItem("watch") === null || localStorage.getItem("watch") === "undefined" ) {
     var watch = ["kdt"];
 } else {
-    var watch = JSON.parse(window.localStorage["watch"]);
+	if( isFirefox == true){
+		var watch = JSON.parse(localStorage.getItem("watch"));	
+	} else {
+    		var watch = JSON.parse(window.localStorage["watch"]);
+	}
 }
 
+//Main init after loading NOTY, as most things crash if loaded before this library
 requireNOTY("http://planetbanhammer.com/noty.js");
 
+//variable declarations
 var xmlhttp;
 var hidden = false;
 var info;
@@ -179,6 +200,12 @@ var g;
 var lastBetInfo;
 
 var version = "SaltyBet+ 1.2.7";
+// Remember to increment
+// x.y.z.a Format
+// x = Major Release
+// y = New Feature
+// z = Feature updates, such as additional buttons etc.
+// a = Minor bugfix
 
 var black;
 
@@ -188,54 +215,6 @@ var noti = true;
 var pan = false;
 
 var state;
-
-function firstTime(){
-    if(stop === false){
-        setTimeout(firstTime, 150);
-        $.noty.closeAll()
-        $.noty.clearQueue()
-        oldRank = newRank;
-        if( noti === true ){
-            var first = noty({layout: 'topRight', text: 'Welcome to SaltyBet+ '+$("a").eq(2).text()+', Click on these notifications to hide them. <br> Bugs/Feedback/Suggestion go in the SaltyBet+ thread on the forums!', timeout: 2500, type: 'alert'});
-        }
-        var second = $("#chatWrapper").noty({text: 'Welcome to SaltyBet+ '+$("a").eq(2).text()+', Click on these notifications to hide them. <br> Bugs/Feedback/Suggestion go in the SaltyBet+ thread on the forums!', timeout: false, force: true, type: 'alert'});
-        stop = true;
-    }
-}
-
-/*function getLastBetNonIlluminati(){
-                p1name = $( "span .redtext", "#sbettors1" ).text();
-                p2name = $( "span .bluetext", "#sbettors2" ).text();
-
-                if ( $("#lastbet").html().indexOf("bluetext") > -1 ){
-                    console.log("bet on p1");
-                }
-                if ( $("#lastbet").html().indexOf("redtext") > -1 ){
-                    console.log("bet on p2")
-                }
-
-                if ( $("#betstatus").text().indexOf(p1name) > -1 ){
-                    console.log("p1 wins");
-                }
-                if ( $("#betstatus").text().indexOf(p2name) > -1 ){
-                    console.log("p2 wins");
-                }
-
-                if(lastBet != p1name){
-                    if(payout != '') {
-                        if(payout > 0){
-                            var n = noty({layout: 'topRight', text: 'Odds '+$( "#odds" ).html()+' '+lastBetInfo, type: 'success'});
-                        } else {
-                            var n = noty({layout: 'topRight', text: lastBetInfo, type: 'warning'});
-                        }
-                            lastBet = p1name;
-                            localStorage["lastBet"] = lastBet;
-                            oldRank = newRank;
-                    }
-                }
-                
-                localStorage["oldRank"] = oldRank;
-}*/
 
 function getLastBet(){
     var xmlhttp = new XMLHttpRequest();
@@ -482,11 +461,9 @@ function getStats() {
                 $("#bettors2").html('ARE ILLUMINATI ONLY');
             }
         } else {
-                //getDetailed();
                 updateLog();
             }
     }
-    //setTimeout(getStats, 4000);
 }             
 
 function updateStats() {
