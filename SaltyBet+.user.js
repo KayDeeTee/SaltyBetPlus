@@ -10,18 +10,6 @@
 
 //Changes the slider to be x=(y^3/100^3)*b instead of x=(y/100)*b
 //Where x = wager, y = slider distance (0->100) and b = balance
-// ==UserScript==
-// @name        SaltyBet+
-// @namespcae   sb+
-// @description Enhances Saltybet.
-// @include     http://www.saltybet.com/
-// @version     1.2.7
-// @grant       none
-// @run-at document-end
-// ==/UserScript==
-
-//Changes the slider to be x=(y^3/100^3)*b instead of x=(y/100)*b
-//Where x = wager, y = slider distance (0->100) and b = balance
 $(function() {
 	$( "#slider-range-min" ).slider({
                 range: "min",
