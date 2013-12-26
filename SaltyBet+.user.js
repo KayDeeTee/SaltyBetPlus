@@ -1,5 +1,17 @@
 // ==UserScript==
 // @name        SaltyBet+
+// @namespace   sb+
+// @description Enhances Saltybet.
+// @include     http://www.saltybet.com/
+// @version     2.0.0
+// @grant       none
+// @run-at document-end
+// ==/UserScript==
+
+//Changes the slider to be x=(y^3/100^3)*b instead of x=(y/100)*b
+//Where x = wager, y = slider distance (0->100) and b = balance
+// ==UserScript==
+// @name        SaltyBet+
 // @namespcae   sb+
 // @description Enhances Saltybet.
 // @include     http://www.saltybet.com/
@@ -199,7 +211,7 @@ var g;
 
 var lastBetInfo;
 
-var version = "SaltyBet+ 1.2.7";
+var version = "SaltyBet+ 2.0.0";
 // Remember to increment
 // x.y.z.a Format
 // x = Major Release
@@ -348,8 +360,8 @@ function updateLog2() {
                     }
                     if( p1log === "undefined" ){ p1log = ""; }
                     if( p2log === "undefined" ){ p2log = ""; }
-                    $("#bettors1").html('<h1 style="text-align:center">' + p1totalmatches + '</h1><p style="text-align:center">MATCHES</p><h1 style="text-align:center">' + p1winrate + '%</h1><p style="text-align:center">WINRATE</p><h1 style="text-align:center">'+p1tier+'</h1><p style="text-align:center">TIER</p><h1 style="text-align:center">' + p1life + '</h1><p style="text-align:center">LIFE</p><h1 style="text-align:center">' +p1meter +'</h1><p style="text-align:center">METER</p>'+p1log);
-                    $("#bettors2").html('<h1 style="text-align:center">' + p2totalmatches + '</h1><p style="text-align:center">MATCHES</p><h1 style="text-align:center">' + p2winrate + '%</h1><p style="text-align:center">WINRATE</p><h1 style="text-align:center">'+p2tier+'</h1><p style="text-align:center">TIER</p><h1 style="text-align:center">' + p2life + '</h1><p style="text-align:center">LIFE</p><h1 style="text-align:center">' +p2meter +'</h1><p style="text-align:center">METER</p>'+p2log); 
+                    $("#sbpbettors1").html('<span class="redtext">'+p1name+'</span><div style="border-top: 1px solid rgb(176, 68, 68);"><h1 style="text-align:center">' + p1totalmatches + '</h1><p style="text-align:center">MATCHES</p><h1 style="text-align:center">' + p1winrate + '%</h1><p style="text-align:center">WINRATE</p><h1 style="text-align:center">'+p1tier+'</h1><p style="text-align:center">TIER</p><h1 style="text-align:center">' + p1life + '</h1><p style="text-align:center">LIFE</p><h1 style="text-align:center">' +p1meter +'</h1><p style="text-align:center">METER</p>'+p1log+'</div>');
+                    $("#sbpbettors2").html('<span class="bluetext">'+p2name+'</span><div style="border-top: 1px solid rgb(2, 81, 155);"><h1 style="text-align:center">' + p2totalmatches + '</h1><p style="text-align:center">MATCHES</p><h1 style="text-align:center">' + p2winrate + '%</h1><p style="text-align:center">WINRATE</p><h1 style="text-align:center">'+p2tier+'</h1><p style="text-align:center">TIER</p><h1 style="text-align:center">' + p2life + '</h1><p style="text-align:center">LIFE</p><h1 style="text-align:center">' +p2meter +'</h1><p style="text-align:center">METER</p>'+p2log+'</div>'); 
                     state = "open";
                     }
                 };
@@ -395,7 +407,11 @@ function getRealtime() {
            p2winrate = data.p2winrate;
            p2tier = data.p2tier;
            p2life = data.p2life;
-           p2meter = data.p2meter;           
+           p2meter = data.p2meter; 
+            
+           $( "#sbpbettorscounts" ).remove();
+           $("#sbpbettors1").html('<span class="redtext">'+p1name+'</span><div style="border-top: 1px solid rgb(176, 68, 68);"><h1 style="text-align:center">' + p1totalmatches + '</h1><p style="text-align:center">MATCHES</p><h1 style="text-align:center">' + p1winrate + '%</h1><p style="text-align:center">WINRATE</p><h1 style="text-align:center">'+p1tier+'</h1><p style="text-align:center">TIER</p><h1 style="text-align:center">' + p1life + '</h1><p style="text-align:center">LIFE</p><h1 style="text-align:center">' +p1meter +'</h1><p style="text-align:center">METER</p></div>');
+           $("#sbpbettors2").html('<span class="bluetext">'+p2name+'</span><div style="border-top: 1px solid rgb(2, 81, 155);"><h1 style="text-align:center">' + p2totalmatches + '</h1><p style="text-align:center">MATCHES</p><h1 style="text-align:center">' + p2winrate + '%</h1><p style="text-align:center">WINRATE</p><h1 style="text-align:center">'+p2tier+'</h1><p style="text-align:center">TIER</p><h1 style="text-align:center">' + p2life + '</h1><p style="text-align:center">LIFE</p><h1 style="text-align:center">' +p2meter +'</h1><p style="text-align:center">METER</p></div>');            
         },
         error: function(){
             if( noti === true ){
@@ -448,22 +464,9 @@ function getDetailed(){
 }
 
 function getStats() { 
-    if($("#betstatus").text().indexOf("OPEN") > 0){
-    $(".tipsy").remove();
-    getRealtime();
-        if($( ".redtext" )[0].innerHTML.indexOf(p1name) == -1){
             if ( g === true ){
-                $("#bettors1").html('<img src="images/potload.gif"><p style="text-align:center">"REAL"-TIME kappa</p>');
-                $("#bettors2").html('<img src="images/potload.gif"><p style="text-align:center">"REAL"-TIME kappa</p>');
-                setTimeout(getStats, 1000);
-            } else {
-                $("#bettors1").html('REAL TIME STATS');
-                $("#bettors2").html('ARE ILLUMINATI ONLY');
+                getRealtime();
             }
-        } else {
-                updateLog();
-            }
-    }
 }             
 
 function updateStats() {
@@ -491,84 +494,221 @@ function updateStats() {
     xmlhttp.send();
 }
 
-function highlightBets(){
-    $( "strong" ).unbind();
-    
-    $(".tipsy").remove();
-    
-    $( "strong").each(function( index ) {    
-            
-            $( this ).click(function() {    
-                 if ($.inArray($(this).text(), watch) == -1){
-                    watch.push($(this).text());
-                    highlightBets();
-                 } else {
-                    var index = watch.indexOf($(this).text());
-                    if (index > -1) {
-                        watch.splice(index, 1);
-                    }
-                    highlightBets();
-                 }
-            });
-        });
-        
-    $( "#sbettors1 p, #sbettors2 p" ).each(function( index ) {
-    
-        var illuminati = $( "strong", this ).attr('class');
-        var name= '<strong class="'+illuminati+'">'+$( "strong", this ).text()+'</strong>';
-        
-        var money = $( ".greentext", this ).text().substring(1);
-        var percent = $( "span:last", this ).text().slice(1, -2);
-        
-       
-        var gain = 0;
-        if ($( "span:first", this ).attr('class') === 'bluetext'){
-            gain = money*(p1w/p2w);
-        } else {
-            gain = money/(p1w/p2w);
-        }
-        
-        $( this ).hover(
-            function(){
-                $(".tipsy").remove();
-                var name = $("strong", this).text();
-                var money;
-                $.each(obj, function(i, n) {
-                    if(n.n === name){
-                        //console.log(n.n);
-                        money = n.b;
-                    }
-                });
-                $( this ).tipsy({html: true, fallback: name + " : S " + money + ' (<span class="greentext">$' + gain.toFixed(0) + "</span>)"});
-                $( this ).tipsy("show");
-                }
-            )
-    
-        loop1:
-        for (var i = 0; i < watch.length+1; i++) {        
-            if ($( this ).text().indexOf( watch[i] ) > -1) {
-                if( !black ){
-                    $( this ).css({"backgroundColor":"white", "color":"black"});
-                } else {
-                    $( this ).css({"backgroundColor":"black", "color":"white"});
-                }
-                break loop1;
-            } else {
-                $( this ).removeAttr("style");
-            }            
-        }
-    });
-    
-    localStorage["watch"] = JSON.stringify(watch);
-    
-    
-    if($("#betstatus").text().indexOf("OPEN") == -1){
-        var totalbettors = parseInt($(" div#bettors1 p").length)+parseInt($(" div#bettors2 p").length);
-        $( "#sbettorscount" ).html('Salty Bettors : <strong>' + totalbettors +'</strong> (<strong class="redtext">' + $(" div#bettors1 p").length + '</strong> | <strong class="bluetext">'+$(" div#bettors2 p").length+'</strong>)</br>');
-        if (parseInt($(" div#bettors1 p").length) > 0 ) {
-            setTimeout( function() { state = "locked"; }, 1500 );
+function insert(element, array){
+    array.push(element);
+    array.sort(function(a,b) {return a-b});
+    return array;
+}
+
+function abbrNum(number, decPlaces) {
+    // 2 decimal places => 100, 3 => 1000, etc
+    decPlaces = Math.pow(10,decPlaces);
+
+    // Enumerate number abbreviations
+    var abbrev = [ "k", "m", "b", "t" ];
+
+    // Go through the array backwards, so we do the largest first
+    for (var i=abbrev.length-1; i>=0; i--) {
+
+        // Convert array index to "1000", "1000000", etc
+        var size = Math.pow(10,(i+1)*3);
+
+        // If the number is bigger or equal do the abbreviation
+        if(size <= number) {
+             // Here, we multiply by decPlaces, round, and then divide by decPlaces.
+             // This gives us nice rounding to a particular decimal place.
+             number = Math.round(number*decPlaces/size)/decPlaces;
+
+             // Handle special case where we round up to the next abbreviation
+             if((number == 1000) && (i < abbrev.length - 1)) {
+                 number = 1;
+                 i++;
+             }
+
+             // Add the letter for the abbreviation
+             number += abbrev[i];
+
+             // We are done... stop
+             break;
         }
     }
+
+    return number;
+}
+
+function highlightBets(){
+    $.getJSON( "/zdata.json", function (data) {
+        $("#sbpbettors1").html('<span class="redtext">'+data.p1name+'</span><div id="sbpbetlisthl1" style="border-top: 1px solid rgb(176, 68, 68);"></div><div id="sbpbetlist1"></div>');
+        $("#sbpbettors2").html('<span class="bluetext">'+data.p2name+'</span><div id="sbpbetlisthl2" style="border-top: 1px solid rgb(2, 81, 155);"></div><div id="sbpbetlist2"></div>');
+        var watch = JSON.parse(localStorage.getItem("watch"));
+        var p1 = ([],[]);
+        var p2 = ([],[]);
+        $.each( data, function(i, val){
+            var z = 0;
+            $.each( watch, function(i, v){
+                if( v === val.n ){ z = 1 };
+            });
+            if(val.p == 1){
+                var tempArr = [val.w, val.b, val.n, val.g, val.r, z];
+                p1.push(tempArr);
+            }
+            if(val.p == 2){
+                var tempArr = [val.w, val.b, val.n, val.g, val.r, z];
+                p2.push(tempArr);
+            }            
+        });
+        p1.sort(function(a,b) {return b[0]-a[0];});
+        p2.sort(function(a,b) {return b[0]-a[0];});
+        var odd=true;
+        var hlodd=true;
+        $.each( p1, function(i, val) {
+            var name = '<strong>'+val[2]+'</strong>';
+            var dash = '<span class="redtext"> - </span>';
+            var wager = '<span class="greentext">$'+abbrNum(val[0], 1)+'</span>';
+            var percent = (val[0]/val[1])*100
+            var postwager = '<span class="greentext"> ('+Math.ceil(percent)+'% / $'+abbrNum(val[1], 1)+')</span>';
+            var img = '<img src="../images/ranksmall/rank'+val[4]+'.png" class="levelimage">';
+            var cssClass = '';
+            if (val[4] == 0){ img = ""; }                
+            if(val[3] == 1){ name = '<strong class="goldtext">'+val[2]+'</strong>'; }
+            if( val[5] == 1 ) {
+                hlodd = !hlodd;
+                if( black == true ){
+                    if( hlodd == true){
+                        cssClass = "redblackoddhl"
+                    } else {
+                        cssClass = "redblackevenhl"
+                    }
+                } else {
+                    if( hlodd == true){
+                        cssClass = "redwhiteoddhl"
+                    } else {
+                        cssClass = "redwhiteevenhl"
+                    }
+                }
+                $("#sbpbetlisthl1").append('<div class="'+val[2]+' '+cssClass+'">'+img+'<p>'+name+dash+wager+postwager+'</p></div>')
+                $( '.'+val[2] ).click(  function() {    
+                    if ($.inArray( val[2], watch) == -1){
+                        watch.push( val[2] );
+                        localStorage["watch"] = JSON.stringify(watch);
+                        highlightBets();
+                    } else {
+                        var index = watch.indexOf( val[2] );
+                        if (index > -1) {
+                            watch.splice(index, 1);
+                            localStorage["watch"] = JSON.stringify(watch);
+                        }
+                        highlightBets();
+                    }
+                 });
+            } else {
+                odd = !odd;
+                if( black == true ){
+                    if( odd == true){
+                        cssClass = "redblackodd"
+                    } else {
+                        cssClass = "redblackeven"
+                    }
+                } else {
+                    if( odd == true){
+                        cssClass = "redwhiteodd"
+                    } else {
+                        cssClass = "redwhiteeven"
+                    }
+                }
+                $("#sbpbetlist1").append('<div class="'+val[2]+' '+cssClass+'">'+img+'<p>'+name+dash+wager+postwager+'</p></div>')
+                $( '.'+val[2] ).click(  function() {    
+                    if ($.inArray( val[2], watch) == -1){
+                        watch.push( val[2] );
+                        localStorage["watch"] = JSON.stringify(watch);
+                        highlightBets();
+                    } else {
+                        var index = watch.indexOf( val[2] );
+                        if (index > -1) {
+                            watch.splice(index, 1);
+                            localStorage["watch"] = JSON.stringify(watch);
+                        }
+                        highlightBets();
+                    }
+                 });
+            }
+        });
+        $.each( p2, function(i, val) {            
+            var name = '<strong>'+val[2]+'</strong>';
+            var dash = '<span class="bluetext"> - </span>';
+            var wager = '<span class="greentext">$'+abbrNum(val[0], 1)+'</span>';
+            var percent = (val[0]/val[1])*100
+            var postwager = '<span class="greentext"> ('+Math.ceil(percent)+'% / $'+abbrNum(val[1], 1)+')</span>';
+            var img = '<img src="../images/ranksmall/rank'+val[4]+'.png" class="levelimage">';
+            var cssClass = '';
+            if (val[4] == 0){ img = ""; }                
+            if(val[3] == 1){ name = '<strong class="goldtext">'+val[2]+'</strong>'; }
+            if( val[5] == 1 ) {
+                hlodd = !hlodd;
+                if( black == true ){
+                    if( hlodd == true){
+                        cssClass = "blublackoddhl"
+                    } else {
+                        cssClass = "blublackevenhl"
+                    }
+                } else {
+                    if( hlodd == true){
+                        cssClass = "bluwhiteoddhl"
+                    } else {
+                        cssClass = "bluwhiteevenhl"
+                    }
+                }
+                $("#sbpbetlisthl2").append('<div class="'+val[2]+' '+cssClass+'">'+img+'<p>'+name+dash+wager+postwager+'</p></div>')
+                $( '.'+val[2] ).click(  function() {    
+                    if ($.inArray( val[2], watch) == -1){
+                        watch.push( val[2] );
+                        localStorage["watch"] = JSON.stringify(watch);
+                        highlightBets();
+                    } else {
+                        var index = watch.indexOf( val[2] );
+                        if (index > -1) {
+                            watch.splice(index, 1);
+                            localStorage["watch"] = JSON.stringify(watch);
+                        }
+                        highlightBets();
+                    }
+                 });
+            } else {
+                odd = !odd;
+                if( black == true ){
+                    if( odd == true){
+                        cssClass = "blublackodd"
+                    } else {
+                        cssClass = "blublackeven"
+                    }
+                } else {
+                    if( odd == true){
+                        cssClass = "bluwhiteodd"
+                    } else {
+                        cssClass = "bluwhiteeven"
+                    }
+                }
+                $("#sbpbetlist2").append('<div class="'+val[2]+' '+cssClass+'">'+img+'<p>'+name+dash+wager+postwager+'</p></div>')
+                $( '.'+val[2] ).click(  function() {    
+                    if ($.inArray( val[2], watch) == -1){
+                        watch.push( val[2] );
+                        localStorage["watch"] = JSON.stringify(watch);
+                        highlightBets();
+                    } else {
+                        var index = watch.indexOf( val[2] );
+                        if (index > -1) {
+                            watch.splice(index, 1);
+                            localStorage["watch"] = JSON.stringify(watch);
+                        }
+                        highlightBets();
+                    }
+                 });
+            }
+            });
+        $( "#sbpbettorscount" ).html('Salty Bettors : <strong>' + (p1.length+p2.length) +'</strong> (<strong class="redtext">' + p1.length + '</strong> | <strong class="bluetext">'+p2.length+'</strong>)</br>');
+        
+        state="locked";
+    });
 }
 
 function togPan(){
@@ -578,7 +718,7 @@ function togPan(){
         $( '#bottomcontent' ).css("min-height", "1px");
         $( '#bottomcontent' ).css("height", "81px");
         $( '#bottomcontent' ).css("bottom", "0px");
-        $( '.betcard' ).addClass("shart");
+        $( '.betcard' ).addClass("short");
         $( '#stream' ).css("bottom", "81px");
         
         $( '#status' ).css("display", "none");
@@ -590,7 +730,7 @@ function togPan(){
         $( '#bottomcontent' ).css("min-height", "1px");
         $( '#bottomcontent' ).css("height", "171px");
         $( '#bottomcontent' ).css("bottom", "45px");
-        $( '.betcard' ).removeClass("shart");
+        $( '.betcard' ).removeClass("short");
         $( '#stream' ).css("bottom", "215px");
         
         $( '#status' ).css("display", "block");
@@ -666,7 +806,10 @@ function update(){
                         console.log(objs["status"]);
                         if(objs["status"]==="open"){
                             if(state != "open"){
-                                console.log("1");
+                                state = "open";
+                                $("#sbpbettors1").html('<span class="redtext">'+objs["p1name"]+'</span><div id="sbpbettors1" style="border-top: 1px solid rgb(176, 68, 68);"><img src="images/potload.gif"></div>');
+                                $("#sbpbettors2").html('<span class="bluetext">'+objs["p2name"]+'</span><div id="sbpbettors1" style="border-top: 1px solid rgb(2, 81, 155);"><img src="images/potload.gif"></div>'); 
+                 
                                 if( $(".goldtext:first").text() === $("a").eq(3).text() ){
                                     g = true;
                                 } else {
@@ -682,7 +825,6 @@ function update(){
                                 setTimeout(update, 1000);
                             } else if (objs["status"] === "locked") {
                                 if(state != "locked"){
-                                    console.log("2");
                                     highlightBets();
                                     getOdds();
                                 }                                    
@@ -690,85 +832,26 @@ function update(){
                             } else {
                                 setTimeout(update, 1000);
                             }
+                  	if( $( '#lastbet' ).html() === '<img src="../images/loadred.GIF">'){
+        			$( ".redborder" ).eq(0).addClass("goldborder");
+        			$( ".blueborder" ).eq(0).removeClass("goldborder");
+    			} else if ( $( '#lastbet' ).html() === '<img src="../images/loadblue.GIF">'){
+        			$( ".blueborder" ).eq(0).addClass("goldborder");
+        			$( ".redborder" ).eq(0).removeClass("goldborder");
+    			} else if ( $( '#lastbet' ).html() === 'N/A'){
+        			$( ".blueborder" ).eq(0).removeClass("goldborder");
+        			$( ".redborder" ).eq(0).removeClass("goldborder");
+    			} else {
+        			$( ".blueborder" ).eq(0).removeClass("goldborder");
+        			$( ".redborder" ).eq(0).removeClass("goldborder");
+    			}
+                    },
+                    error: function(){
+                        setTimeout(update,2500);
                     }
                 });
     
 }
-
-MutationObserver =  window.WebKitMutationObserver;
-
-var observer = new MutationObserver(function(mutations, observer) {
-    // fired when a mutation occurs
-    if( waiting === false ){
-        //update();
-        waiting = true;
-        setTimeout(function(){ waiting = false; }, 5000);
-        
-    }
-});
-
-observer.observe($( "#betstatus" )[0], {
-  subtree: true,
-  attributes: true
-});
-
-var betObs = new MutationObserver(function(mutations, betObs) {
-    // fired when a mutation occurs
-    if( waitinghb === false ){
-        if($("#betstatus").text().indexOf("OPEN") < 0){
-        waitinghb = true;
-        setTimeout(function(){ waitinghb = false; }, 250);
-        }
-    }
-
-});
-
-betObs.observe($( "#sbettorswrapper" )[0], {
-  subtree: true,
-  attributes: true
-});
-
-var lbObs = new MutationObserver(function(mutations, lbObs) {
-    // fired when a mutation occurs
-    if( waitinglb === false ){
-    if( $('#odds').html() == 'N/A' ){
-        $( '.hudtext' ).eq(1).css("display", "none");
-        $( '#lastbet' ).css("display", "none");
-        $( '.hudtext' ).eq(2).css("display", "none");
-        $( '#odds' ).css("display", "none");
-        //$( '#wagerwrapper span' ).eq(0).css("display", "inline");
-        $( '#wagerwrapper input' ).eq(0).css("display", "inline");        
-    } else {
-        $( '.hudtext' ).eq(1).css("display", "inline");
-        $( '#lastbet' ).css("display", "inline");
-        $( '.hudtext' ).eq(2).css("display", "inline");
-        $( '#odds' ).css("display", "inline");
-        //$( '#wagerwrapper span' ).eq(0).css("display", "none");
-        $( '#wagerwrapper input' ).eq(0).css("display", "none");
-    }
-    if( $( '#lastbet' ).html() === '<img src="../images/loadred.GIF">'){
-        $( ".redborder" ).eq(0).addClass("goldborder");
-        $( ".blueborder" ).eq(0).removeClass("goldborder");
-    } else if ( $( '#lastbet' ).html() === '<img src="../images/loadblue.GIF">'){
-        $( ".blueborder" ).eq(0).addClass("goldborder");
-        $( ".redborder" ).eq(0).removeClass("goldborder");
-    } else if ( $( '#lastbet' ).html() === 'N/A'){
-        $( ".blueborder" ).eq(0).removeClass("goldborder");
-        $( ".redborder" ).eq(0).removeClass("goldborder");
-    } else {
-        $( ".blueborder" ).eq(0).removeClass("goldborder");
-        $( ".redborder" ).eq(0).removeClass("goldborder");
-    }
-    waitinglb = true;
-    setTimeout(function(){ waitinglb = false; }, 250);
-    }
-});
-
-lbObs.observe($( '#wagerwrapper' )[0], {
-  subtree: true,
-  attributes: true
-});
-
 
 function toggleWideScreen(){
     if(hidden===false){
@@ -935,14 +1018,18 @@ function requireNOTY(script) {
     $("ul li h2:first").html("");
     //$( '#wagerwrapper .menu' ).addClass("hidden");   
     //$( '#lastbet' ).css("display", "none");
-    $( 'head' ).prepend('<style>    #wagerwrapper br {        display: none;    }    .goldborder {        border: 2px solid darkgoldenrod !important;        border-top-color: darkgoldenrod !important;        border-top-style: solid;        border-top-width: 1px;\border-right-color: darkgoldenrod !important;        border-right-style: solid;        border-right-width: 1px;        border-bottom-color: darkgoldenrod !important;        border-bottom-style: solid;        border-bottom-width: 1px;        border-left-color: darkgoldenrod !important;\border-left-style: solid;        border-left-width: 1px;}</style>');
+    $( 'head' ).prepend('<style>    #wagerwrapper br {        display: none;    }    .goldborder {        border: 1px solid darkgoldenrod !important;        border-top-color: darkgoldenrod !important;        border-top-style: solid;        border-top-width: 1px;\border-right-color: darkgoldenrod !important;        border-right-style: solid;        border-right-width: 1px;        border-bottom-color: darkgoldenrod !important;        border-bottom-style: solid;        border-bottom-width: 1px;        border-left-color: darkgoldenrod !important;\border-left-style: solid;        border-left-width: 1px;}</style>');
     $( 'head' ).prepend('<style>.newbetbuttonred, .newbetbuttonblue{    font-size: 16px;    letter-spacing: 1px;    font-weight: bold;    cursor: pointer;    color: white;    position: relative;    display: block;    padding: 4px;    -webkit-border-radius: 8px;    -moz-border-radius: 8px;    border-radius: 8px;    -webkit-box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);    -moz-box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);    box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);    width: 140px;    height:100%;    text-align: center;    border:none;    background-color: rgb(176, 68, 68);    background-image: -moz-linear-gradient(rgb(221, 109, 109), rgb(176, 68, 68)) no-repeat top left;;    background-image: -webkit-linear-gradient(rgb(221, 109, 109), rgb(176, 68, 68)) no-repeat top left;;    background-image: linear-gradient(rgb(221, 109, 109), rgb(176, 68, 68)) no-repeat top left;;    background-repeat: repeat-x;     background: rgb(176, 68, 68) url(../images/bet1.png) no-repeat center center;    -webkit-transition: all .1s ease;    -moz-transition: all .1s ease;    -ms-transition: all .1s ease;    -o-transition: all .1s ease;    transition: all .1s ease;}.newbetbuttonblue{    -webkit-box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);    -moz-box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);    box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);    background-color: rgb(52, 158, 255);    background-image: -moz-linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));    background-image: -webkit-linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));    background-image: linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));    background-repeat: repeat-x;    background: rgb(52, 158, 255) url(../images/bet1.png) no-repeat center center;}    .newbetbuttonred:active{    -webkit-box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    -moz-box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    position: relative;    top: 6px;}.newbetbuttonblue:active{    -webkit-box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);    -moz-box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);    box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);    position: relative;    top: 6px;}</style>');    
     $( 'head' ).prepend('<style>.newsmbetbuttonred, .newsmbetbuttonblue{    font-size: 16px;    letter-spacing: 1px;    font-weight: bold;    cursor: pointer;    color: white;    position: relative;    display: block;   -webkit-border-radius: 8px;    -moz-border-radius: 8px;    border-radius: 8px;    -webkit-box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);    -moz-box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);    box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);    width: 70px;    height:100%;    text-align: center;    border:none;    background-color: rgb(176, 68, 68);    background-image: -moz-linear-gradient(rgb(221, 109, 109), rgb(176, 68, 68)) no-repeat top left;;    background-image: -webkit-linear-gradient(rgb(221, 109, 109), rgb(176, 68, 68)) no-repeat top left;;    background-image: linear-gradient(rgb(221, 109, 109), rgb(176, 68, 68)) no-repeat top left;;    background-repeat: repeat-x;     background: rgb(176, 68, 68) no-repeat center center;    -webkit-transition: all .1s ease;    -moz-transition: all .1s ease;    -ms-transition: all .1s ease;    -o-transition: all .1s ease;    transition: all .1s ease;}.newsmbetbuttonblue{    -webkit-box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);    -moz-box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);    box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);    background-color: rgb(52, 158, 255);    background-image: -moz-linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));    background-image: -webkit-linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));    background-image: linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));    background-repeat: repeat-x;    background: rgb(52, 158, 255) no-repeat center center;}    .newsmbetbuttonred:active{    -webkit-box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    -moz-box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    position: relative;    top: 6px;}.newsmbetbuttonblue:active{    -webkit-box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);    -moz-box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);    box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);    position: relative;    top: 6px;}</style>');    
+    $( 'head' ).prepend('<style>.blublackodd {background-color:#C0D0FF;} .blublackeven {background-color:#B0C0FF;} .bluwhiteodd {background-color:#000023;} .bluwhiteeven {background-color:#202043;}</style>');
+    $( 'head' ).prepend('<style>.redblackodd {background-color:#FFD0C0;} .redblackeven {background-color:#FFCCB0;} .redwhiteodd {background-color:#230000;} .redwhiteeven {background-color:#432020;}</style>');
+    $( 'head' ).prepend('<style>.blublackoddhl {background-color:#A0B0FF;} .blublackevenhl {background-color:#90A0FF;} .bluwhiteoddhl {background-color:#200043;} .bluwhiteevenhl {background-color:#402063;}</style>');
+    $( 'head' ).prepend('<style>.redblackoddhl {background-color:#FFB0A0;} .redblackevenhl {background-color:#FFA090;} .redwhiteoddhl {background-color:#430020;} .redwhiteevenhl {background-color:#632040;}</style>');
     
     //$( 'head' ).prepend('<style>.smredbutton, .smblubutton{    font-size: 16px;    letter-spacing: 1px;    font-weight: bold;    cursor: pointer;    color: white;    position: relative;    display: block;    padding: 4px;    -webkit-border-radius: 8px;    -moz-border-radius: 8px;    border-radius: 8px;    -webkit-box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);    -moz-box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);    box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);    width: 70px;    height:40%;    text-align: center;    border:none;    background-color: rgb(176, 68, 68);  -webkit-transition: all .1s ease;    -moz-transition: all .1s ease;    -ms-transition: all .1s ease;    -o-transition: all .1s ease;    transition: all .1s ease;}.newbetbuttonblue{    -webkit-box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);    -moz-box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);    box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);    background-color: rgb(52, 158, 255);    background-image: -moz-linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));    background-image: -webkit-linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));    background-image: linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));    background-repeat: repeat-x;    background: rgb(52, 158, 255) url(../images/bet1.png) no-repeat center center;}    .smredbutton:active{    -webkit-box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    -moz-box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    position: relative;    top: 6px;}.smblubutton:active{    -webkit-box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);    -moz-box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);    box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);    position: relative;    top: 6px;}</style>');    
-    $( 'head' ).prepend('<style>#p1name, #p2name {font-size: 1.0em !important;}</style>');
+    $( 'head' ).prepend('<style>#p1name, #p2name {font-size: 1.0em !important;} p {font-size: .7em !important;margin: 0;line-height: 26px;}</style>');
     $( 'head' ).prepend('<style>.hidden {display: none !important;}</style>');
-    $( 'head' ).prepend('<style>.short {height: 35px;}</style>');
+    $( 'head' ).prepend('<style>.short {height: 35px !important;}</style>');
     //$( 'head' ).prepend('<style>#hoverbuttonred, #hoverbuttonblue {display: none !important;} {display: none !important;}</style>');
     //$( 'head' ).prepend('<style>#hoverbuttonred {display: none; } #hoverred:hover ~ #hoverbuttonred {display: block !important;}</style>')
     $( 'head' ).prepend('<style>.redbutton {font-size: 14px;letter-spacing: 1px;font-weight: bold;cursor: pointer;color: white;position: relative;display: block;margin-right:5%;-webkit-border-radius: 8px;-moz-border-radius: 8px;border-radius: 8px;-webkit-box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);-moz-box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);width: 45%;height: 35px;text-align: center;border: none;background-color: rgb(176, 68, 68);background-image: -moz-linear-gradient(rgb(221, 109, 109), rgb(176, 68, 68)) no-repeat top left;background-image: -webkit-linear-gradient(rgb(221, 109, 109), rgb(176, 68, 68)) no-repeat top left;background-image: linear-gradient(rgb(221, 109, 109), rgb(176, 68, 68)) no-repeat top left;background-repeat: repeat-x;background: rgb(176, 68, 68) no-repeat center center;-webkit-transition: all .1s ease;-moz-transition: all .1s ease;-ms-transition: all .1s ease;-o-transition: all .1s ease;transition: all .1s ease;margin-bottom:5px;}.blubutton{-webkit-box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);-moz-box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);background-color: rgb(52, 158, 255);background-image: -moz-linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));background-image: -webkit-linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));background-image: linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));background-repeat: repeat-x;background: rgb(52, 158, 255)  no-repeat center center;width: 45%;height: 35px;text-align: center;border: none;-webkit-transition: all .1s ease;-moz-transition: all .1s ease;-ms-transition: all .1s ease;-o-transition: all .1s ease;transition: all .1s ease;font-size: 14px;letter-spacing: 1px;font-weight: bold;cursor: pointer;color: white;position: relative;display: block;margin-left:5%;-webkit-border-radius: 8px;-moz-border-radius: 8px;border-radius: 8px;margin-bottom:5px;}.redbutton:active{    -webkit-box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    -moz-box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);position: relative;top: 6px;}.blubutton:active{    -webkit-box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);    -moz-box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);    box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);position: relative;top: 6px;}.protectedred{background-color: rgb(150, 68, 68);-webkit-box-shadow: 0px 9px 0px rgba(101, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);-moz-box-shadow: 0px 9px 0px rgba(101, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);box-shadow: 0px 9px 0px rgba(101, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);}.protectedblu{-webkit-box-shadow: 0px 9px 0px rgba(13, 83, 164, 1), 0px 9px 25px rgba(0,0,0,.7);-moz-box-shadow: 0px 9px 0px rgba(13, 83, 164, 1), 0px 9px 25px rgba(0,0,0,.7);box-shadow: 0px 9px 0px rgba(13, 83, 164, 1), 0px 9px 25px rgba(0,0,0,.7);background-color: rgb(52, 128, 205);}.protectedred:active{  -webkit-box-shadow: 0px 3px 0px rgba(101, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    -moz-box-shadow: 0px 3px 0px rgba(101, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    box-shadow: 0px 3px 0px rgba(101, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);}.protectedblu:active{    -webkit-box-shadow: 0px 3px 0px rgba(13, 83, 164, 1), 0px 3px 6px rgba(0,0,0,.9);    -moz-box-shadow: 0px 3px 0px rgba(13, 83, 164, 1), 0px 3px 6px rgba(0,0,0,.9);    box-shadow: 0px 3px 0px rgba(13, 83, 164, 1), 0px 3px 6px rgba(0,0,0,.9);}#redsbbuttonblock{padding-bottom:16px;width:230px;height:100%;position: relative;margin-right:0.5%;}#blusbbuttonblock{padding-bottom:16px;width:230px;height:100%;position: relative;margin-left:0.5%;}.bottom{margin-top:12px;position:relative;bottom:12px;}</style>');
@@ -1014,7 +1101,11 @@ function requireNOTY(script) {
     
     $(".betcard").eq(0).prepend('<div id="hoverred" class="right" style="height: 95%;"><input name="valred0" type="button" value="" class="newbetbuttonred" id="redbtn0"><div id="hoverbuttonred" style="position:absolute;bottom:0px;left:33%;margin:0px;padding:5px;width:230px;height:auto !important;z-index:1;" class="hidden betcard left redborder"></div></div>');
     $(".betcard").eq(2).prepend('<div id="hoverblu" class="left" style="height: 95%;"><input name="valblu0" type="button" value="" class="newbetbuttonblue" id="bluebtn0"><div id="hoverbuttonblue" style="position:absolute;bottom:0px;right:33%;margin:0px;padding:5px;width:230px;height:auto !important;z-index:1;" class="hidden betcard right blueborder"></div></div>');
-     
+    
+    $("#sbettorswrapper").append('<div id="sbpbettorscount"></div><div id="sbpbettors1" style="width:50%; display:block; float:left;"></div><div id="sbpbettors2" style="width:50%; display:block; float:right;"></div>');
+    $( "#sbettorscount" ).remove();
+    $("#sbettors1").remove();
+    $("#sbettors2").remove();    
     $( ".betbuttonred" ).hide();
     $( ".betbuttonblue" ).hide();
     
