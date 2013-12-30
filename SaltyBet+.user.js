@@ -1,39 +1,507 @@
 // ==UserScript==
 // @name        SaltyBet+
-// @namespace   sb+
+// @namespcae   sb+
 // @description Enhances Saltybet.
 // @include     http://www.saltybet.com/
-// @version     2.0.0
+// @version     2.0.8
 // @grant       none
 // @run-at document-end
 // ==/UserScript==
 
 //Changes the slider to be x=(y^3/100^3)*b instead of x=(y/100)*b
+//Changes the slider to be x=(y^3/100^3)*b instead of x=(y/100)*b
 //Where x = wager, y = slider distance (0->100) and b = balance
-$(function() {
-	$( "#slider-range-min" ).slider({
-                range: "min",
-                value: 0,
-                min: 0,
-                max: 0,
-                animate: "fast",
-                slide: function( event, ui ) {var 
-                	pct = ui.value / $( "#balance" ).text();
-                  	pct = pct * 100;
-                  	$( "#wager" ).val(Math.round((Math.pow(pct, 3)/1000000)*$( "#balance" ).text()));
-                }
-     	});
+
+function setAspectRatioSBP() {
+        $('#videoEmbed').each(function() {
+            $(this).width($(this).height()*(4/3) -32);
+        });
+        $('#sbettorswrapper, #chatWrapper').css('width',(($('body').width()-$('#videoEmbed').width())/2));
+        //$('#sbettors1, #sbettors2').css('width',(($('#sbettorswrapper').width())/2) - 10);
+        }
+        
+setAspectRatioSBP();   
+$(window).resize(setAspectRatioSBP);
+
+var betstate;
+var x;
+var p1n;
+var p2n;
+var p1te;
+var p2te;
+var p1to;
+var p2to;
+var varAlert;
+var balance = $("#b").val();
+var u = $("#u").val();
+var _data;
+
+var socket = io.connect("http://www-cdn-twitch.saltybet.com:8000");
+socket.on("message", function (data) {
+    try {
+        $('input[type="submit"]').attr("disabled", "disabled");
+        updateState()
+    } catch (e) {
+        console.log("invalid data");
+        return
+    }
 });
+
+function updateState() {
+    $.ajax({
+        type: "get",
+        url: "../state.json",
+        contentType: "application/json; charset=utf-8",
+        data: "",
+        dataType: "json",
+        cache: "false",
+        timeout: 30000,
+        success: function (data) {
+            betstate = data.status;
+            x = data.x;
+            p1n = data.p1name;
+            p2n = data.p2name;
+            p1te = data.p1total;
+            p2te = data.p2total;
+            p1to = parseInt(p1te.replace(/,/g, ""));
+            p2to = parseInt(p2te.replace(/,/g, ""));
+            varAlert = data.alert;
+            $("#p1name").text(p1n);
+            $("#p2name").text(p2n);
+            $("#player1wager").text("$" + p1te || 0);
+            $("#player2wager").text("$" + p2te || 0);
+            if(localStorage["buttons"] === '1' ){
+                    $( "#redsbbuttonblock" ).fadeOut("fast");
+                    $( "#blusbbuttonblock" ).fadeOut("fast");
+            }
+            if (!varAlert) {
+                if (betstate == "open") {
+                    $("#player1wager").hide().html('<img src="images/potload.gif" />').fadeIn("slow");
+                    $("#player2wager").hide().html('<img src="images/potload.gif" />').fadeIn("slow");
+                    $('input[type="submit"]').removeClass("greybutton").removeClass("greyerbutton");
+                    $('input[type="submit"]').removeAttr("disabled");
+                    $("#sbpbettorscount").html("");
+                    $("#betstatus").hide().html('<span class="greentext">Bets are OPEN!</span>').fadeIn("slow");
+                    if( $("#lastbet").text().indexOf("$") > -1 ) {
+                        $( "#lastbet" ).html( 'N/A' );
+                    }
+                    $( "#odds" ).html( 'N/A' );                
+                    if( pan == true ){
+                        $( "#wager" ).fadeIn("slow");
+                        $( ".hudtext:not(:first)" ).fadeOut("slow");
+                        $( "#lastbet" ).fadeOut("slow");
+                        $( "#odds" ).fadeOut("slow");                             
+                    } else {
+                        $( "#wager" ).fadeIn("slow");
+                        $( ".hudtext:not(:first)" ).fadeIn("slow");
+                        $( "#lastbet" ).fadeIn("slow");
+                        $( "#odds" ).hide().removeClass("hidden").fadeIn("slow");
+                    }
+                    if ( g === true) {
+                        getLastBet();
+                    }
+                    if(state != "open"){
+                        state = "open";
+                        $( "#balance" ).load("http://www.saltybet.com #balance");                                
+                        $("#sbpbettors1").hide().html('<span class="redtext">'+data["p1name"]+'</span><div id="sbpbettors1" style="border-top: 1px solid rgb(176, 68, 68);"><img src="images/potload.gif"></div>').fadeIn("slow");
+                        $("#sbpbettors2").hide().html('<span class="bluetext">'+data["p2name"]+'</span><div id="sbpbettors1" style="border-top: 1px solid rgb(2, 81, 155);"><img src="images/potload.gif"></div>').fadeIn("slow");
+                        if( $(".goldtext:first").text() === $("a").eq(3).text() ){
+                            g = true;
+                        } else {
+                            g = false;
+                        }
+                        getStats();               
+                        updateStats()
+                    }                        
+                } else {
+                    if (betstate == "locked") {
+                    if( pan == true ){
+                        $( "#wager" ).fadeOut("slow");
+                        $( ".hudtext:not(:first)" ).fadeIn("slow");
+                        $( "#lastbet" ).fadeIn("slow");
+                        $( "#odds" ).hide().removeClass("hidden").fadeIn("slow");
+                    } else {
+                        $( "#wager" ).fadeIn("slow");
+                        $( ".hudtext:not(:first)" ).fadeIn("slow");
+                        $( "#lastbet" ).fadeIn("slow");
+                        $( "#odds" ).fadeIn("slow"); 
+                    }
+                    $('input[type="submit"]').addClass("greybutton");                    
+                    $('input[type="submit"]').attr("disabled", "disabled");
+                    $('#bluebtn0').removeClass("greybutton")
+                    $('#redbtn0').removeClass("greybutton")
+                    $('#redbtn0').addClass("greyerbutton");
+                    $('#bluebtn0').addClass("greyerbutton");
+                    $("#betstatus").hide().html("Bets are locked until the next match.").fadeIn("slow")
+                    if( state != "locked"){
+                        updateData();                        
+                        $('#bluebtn0').removeClass("greybutton")
+                        $('#redbtn0').removeClass("greybutton")
+                        getOdds();
+                        }
+                    } else {
+                        betstate == "1" ? $("#betstatus").hide().html('<span class="redtext">' + p1n + " wins! Payouts to Team Red.</span>").fadeIn("slow") : $("#betstatus").hide().html('<span class="bluetext">' + p2n + " wins! Payouts to Team Blue.</span>").fadeIn("slow")
+                    }
+                    //$( "#slider-range-min" ).slider( "option", "max", 0 );
+                    //$( "#slider-range-min" ).slider( "option", "value", 0 );
+                }
+            } else {
+                $("#betstatus").hide().html(varAlert).fadeIn("slow")
+            } if (x == 1) {
+                //updateData();
+            }
+        }
+    })
+}
+
+function updateData() {
+    $.ajax({
+        type: "get",
+        url: "../zdata.json",
+        contentType: "application/json; charset=utf-8",
+        data: "",
+        dataType: "json",
+        cache: "false",
+        timeout: 20000,
+        success: function (data) {
+            if (betstate == "locked") {            
+                $("#sbpbettors1").html('<span class="redtext">'+data.p1name+'</span><div id="sbpbetlisthl1" style="border-top: 1px solid rgb(176, 68, 68);"></div><div id="sbpbetlist1" style="border-top: 1px solid rgb(176, 68, 68);"></div>');
+                $("#sbpbettors2").html('<span class="bluetext">'+data.p2name+'</span><div id="sbpbetlisthl2" style="border-top: 1px solid rgb(2, 81, 155);"></div><div id="sbpbetlist2" style="border-top: 1px solid rgb(2, 81, 155);"></div>');
+                getOdds();
+                var watch = JSON.parse(localStorage.getItem("watch"));
+                if ( watch === null) {
+                    watch = ["kdt"];
+                }
+                var p1wager = data.p1total.replace(/,/g , "");
+                var p2wager = data.p2total.replace(/,/g , "");
+                var p1 = ([],[]);
+                var p2 = ([],[]);
+                $.each( data, function(i, val){
+                    var z = 0;
+                    $.each( watch, function(i, v){
+                        if( v === val.n ){ z = 1 };
+                    });
+                    if(val.p == 1){
+                        var tempArr = [val.w, val.b, val.n, val.g, val.r, z];
+                        p1.push(tempArr);
+                    }
+                    if(val.p == 2){
+                        var tempArr = [val.w, val.b, val.n, val.g, val.r, z];
+                        p2.push(tempArr);
+                    }            
+                });
+                p1.sort(function(a,b) {return b[0]-a[0];});
+                p2.sort(function(a,b) {return b[0]-a[0];});
+                var odd=true;
+                var hlodd=true;
+                $.each( p1, function(i, val) {
+                    var name = '<strong>'+val[2]+'</strong>';
+                    var dash = '<span class="redtext"> - </span>';
+                    var wager = '<span class="greentext">$'+abbrNum(val[0], 1)+'</span>';
+                    var percent = (val[0]/val[1])*100
+                    var postwager = '<span class="greentext"> ('+Math.ceil(percent)+'% / $'+abbrNum(val[1], 1)+')</span>';
+                    var gain = Math.ceil((parseInt(val[0])/parseInt(p1wager))*parseInt(p2wager));
+                    if( val[0] == val[1] ){
+                        postwager = '<span class="greentext"> (<strong class="redtext">'+Math.ceil(percent)+'%</strong> / $'+abbrNum(val[1], 1)+')</span>';
+                    }  
+                    var img = '<img src="../images/ranksmall/rank'+val[4]+'.png" class="levelimage">';
+                    var cssClass = '';
+                    if( val[2] == $("a").eq(3).text() ) {
+                        $( "#lastbet" ).html( '$'+val[0]+' on <span class="redtext">'+data.p1name+'</span>');
+                        if( parseInt(p1wager) > parseInt(p2wager) ){
+                            $( "#odds" ).html('<span class="redtext">' + (p1wager/p2wager).toFixed(1) + '</span>:<span class="bluetext">1</span> (<span class="ngoldtext">$'+gain+'</span>)');
+                        } else {
+                            $( "#odds" ).html( '<span class="redtext">1</span>:<span class="bluetext">' + (p2wager/p1wager).toFixed(1) +'</span> (<span class="ngoldtext">$'+gain+'</span>)');
+                        }
+                    };
+                    if (val[4] == 0){ img = ""; }                
+                    if(val[3] == 1){ name = '<strong class="goldtext">'+val[2]+'</strong>'; }
+                    if( val[5] == 1 ) {
+                        hlodd = !hlodd;
+                        name = '<strong class="redtext">'+val[2]+'</strong>';
+                        if( black == false ){
+                            if( hlodd == true){
+                                cssClass = "redblackoddhl"
+                            } else {
+                                cssClass = "redblackevenhl"
+                            }
+                        } else {
+                            wager = '<span class="ngreentext">$'+abbrNum(val[0], 1)+'</span>';
+                            postwager = '<span class="ngreentext"> ('+Math.ceil(percent)+'% / $'+abbrNum(val[1], 1)+')</span>';
+                            if( val[0] == val[1] ){
+                                postwager = '<span class="ngreentext"> (<strong class="redtext">'+Math.ceil(percent)+'%</strong> / $'+abbrNum(val[1], 1)+')</span>';
+                            } 
+                            if( hlodd == true){
+                                cssClass = "redwhiteoddhl"
+                            } else {
+                                cssClass = "redwhiteevenhl"
+                            }
+                        }
+                        $("#sbpbetlisthl1").append('<div class="'+val[2]+' '+cssClass+'">'+img+'<p>'+name+dash+wager+postwager+'</p><p class="'+val[2]+'sub hidden ngreentext">$'+val[0]+' -> $'+gain.toFixed(0)+'</p></div>');
+                        $( '.'+val[2] ).mouseenter(function(){ $('.'+val[2]+'sub' ).removeClass('hidden'); });
+                        $( '.'+val[2] ).mouseleave(function(){ $('.'+val[2]+'sub').addClass('hidden'); });
+                        $( '.'+val[2] ).click(  function() {    
+                            if ($.inArray( val[2], watch) == -1){
+                                watch.push( val[2] );
+                                localStorage["watch"] = JSON.stringify(watch);
+                                updateData();
+                            } else {
+                                var index = watch.indexOf( val[2] );
+                                if (index > -1) {
+                                    watch.splice(index, 1);
+                                    localStorage["watch"] = JSON.stringify(watch);
+                                }
+                                updateData();
+                            }
+                        });
+                    } else {
+                        odd = !odd;
+                        if( black == false ){
+                            if( odd == true){
+                                cssClass = "redblackodd"
+                            } else {
+                                cssClass = "redblackeven"
+                            }
+                        } else {
+                            if(val[3] == 1){ name = '<strong class="ngoldtext">'+val[2]+'</strong>'; }
+                                wager = '<span class="ngreentext">$'+abbrNum(val[0], 1)+'</span>';
+                                postwager = '<span class="ngreentext"> ('+Math.ceil(percent)+'% / $'+abbrNum(val[1], 1)+')</span>';
+                                if( val[0] == val[1] ){
+                                    postwager = '<span class="ngreentext"> (<strong class="redtext">'+Math.ceil(percent)+'%</strong> / $'+abbrNum(val[1], 1)+')</span>';
+                                } 
+                                if( odd == true){
+                                    cssClass = "redwhiteodd"
+                                } else {
+                                    cssClass = "redwhiteeven"
+                                }
+                        }
+                        $("#sbpbetlist1").append('<div class="'+val[2]+' '+cssClass+'">'+img+'<p>'+name+dash+wager+postwager+'</p><p class="'+val[2]+'sub hidden ngreentext">$'+val[0]+' -> $'+gain.toFixed(0)+'</p></div>');
+                        $( '.'+val[2] ).mouseenter(function(){ $('.'+val[2]+'sub' ).removeClass('hidden'); });
+                        $( '.'+val[2] ).mouseleave(function(){ $('.'+val[2]+'sub').addClass('hidden'); });
+                        $( '.'+val[2] ).click(  function() {    
+                            if ($.inArray( val[2], watch) == -1){
+                                watch.push( val[2] );
+                                localStorage["watch"] = JSON.stringify(watch);
+                                updateData();
+                            } else {
+                                var index = watch.indexOf( val[2] );
+                                if (index > -1) {
+                                    watch.splice(index, 1);
+                                    localStorage["watch"] = JSON.stringify(watch);
+                                }
+                                updateData();
+                            }
+                        });
+                    }
+                });
+                $.each( p2, function(i, val) {            
+                    var name = '<strong>'+val[2]+'</strong>';
+                    var dash = '<span class="bluetext"> - </span>';
+                    var wager = '<span class="greentext">$'+abbrNum(val[0], 1)+'</span>';
+                    var gain = Math.ceil((parseInt(val[0])/parseInt(p2wager))*parseInt(p1wager));
+                    var percent = (val[0]/val[1])*100
+                    var postwager = '<span class="greentext"> ('+Math.ceil(percent)+'% / $'+abbrNum(val[1], 1)+')</span>';
+                    if( val[0] == val[1] ){
+                        postwager = '<span class="greentext"> (<strong class="redtext">'+Math.ceil(percent)+'%</strong> / $'+abbrNum(val[1], 1)+')</span>';
+                    }   
+                    var img = '<img src="../images/ranksmall/rank'+val[4]+'.png" class="levelimage">';
+                    var cssClass = '';
+                    if( val[2] == $("a").eq(3).text() ) {
+                        $( "#lastbet" ).html( '$'+val[0]+' on <span class="bluetext">'+data.p2name+'</span>');
+                        if( parseInt(p1wager) > parseInt(p2wager) ){
+                            $( "#odds" ).html('<span class="redtext">' + (p1wager/p2wager).toFixed(1) + '</span>:<span class="bluetext">1</span> (<span class="ngoldtext">$'+gain+'</span>)');
+                        } else {
+                            $( "#odds" ).html( '<span class="redtext">1</span>:<span class="bluetext">' + (p2wager/p1wager).toFixed(1) +'</span> (<span class="ngoldtext">$'+gain+'</span>)');
+                        }
+                    };
+                    if (val[4] == 0){ img = ""; }                
+                    if(val[3] == 1){ name = '<strong class="goldtext">'+val[2]+'</strong>'; }
+                    if( val[5] == 1 ) {
+                        hlodd = !hlodd;
+                        name = '<strong class="bluetext">'+val[2]+'</strong>';
+                        if( black == false ){
+                            if( hlodd == true){
+                                cssClass = "blublackoddhl"
+                            } else {
+                                cssClass = "blublackevenhl"
+                            }
+                        } else {
+                            wager = '<span class="ngreentext">$'+abbrNum(val[0], 1)+'</span>';
+                            postwager = '<span class="ngreentext"> ('+Math.ceil(percent)+'% / $'+abbrNum(val[1], 1)+')</span>';
+                            if( val[0] == val[1] ){
+                                postwager = '<span class="ngreentext"> (<strong class="redtext">'+Math.ceil(percent)+'%</strong> / $'+abbrNum(val[1], 1)+')</span>';
+                            } 
+                            if( hlodd == true){
+                                cssClass = "bluwhiteoddhl"
+                            } else {
+                                cssClass = "bluwhiteevenhl"
+                            }
+                        }
+                        $("#sbpbetlisthl2").append('<div class="'+val[2]+' '+cssClass+'">'+img+'<p>'+name+dash+wager+postwager+'</p><p class="'+val[2]+'sub hidden ngreentext">$'+val[0]+' -> $'+gain.toFixed(0)+'</p></div>');
+                        $( '.'+val[2] ).mouseenter(function(){ $('.'+val[2]+'sub' ).removeClass('hidden'); });
+                        $( '.'+val[2] ).mouseleave(function(){ $('.'+val[2]+'sub').addClass('hidden'); });
+                        $( '.'+val[2] ).click(  function() {    
+                            if ($.inArray( val[2], watch) == -1){
+                                watch.push( val[2] );
+                                localStorage["watch"] = JSON.stringify(watch);
+                                updateData();
+                            } else {
+                                var index = watch.indexOf( val[2] );
+                                if (index > -1) {
+                                    watch.splice(index, 1);
+                                    localStorage["watch"] = JSON.stringify(watch);
+                                }
+                                updateData();
+                            }
+                        });
+                    } else {
+                        odd = !odd;
+                        if( black == false ){
+                            if( odd == true){
+                                cssClass = "blublackodd"
+                            } else {
+                                cssClass = "blublackeven"
+                            }
+                        } else {
+                            if(val[3] == 1){ name = '<strong class="ngoldtext">'+val[2]+'</strong>'; }
+                            wager = '<span class="ngreentext">$'+abbrNum(val[0], 1)+'</span>';
+                            postwager = '<span class="ngreentext"> ('+Math.ceil(percent)+'% / $'+abbrNum(val[1], 1)+')</span>';
+                            if( val[0] == val[1] ){
+                                postwager = '<span class="ngreentext"> (<strong class="redtext">'+Math.ceil(percent)+'%</strong> / $'+abbrNum(val[1], 1)+')</span>';
+                            } 
+                            if( odd == true){
+                                cssClass = "bluwhiteodd"
+                            } else {
+                                cssClass = "bluwhiteeven"
+                            }
+                        }
+                        $("#sbpbetlist2").append('<div class="'+val[2]+' '+cssClass+'">'+img+'<p>'+name+dash+wager+postwager+'</p><p class="'+val[2]+'sub hidden ngreentext">$'+val[0]+' -> $'+gain.toFixed(0)+'</p></div>');
+                        $( '.'+val[2] ).mouseenter(function(){ $('.'+val[2]+'sub' ).removeClass('hidden'); });
+                        $( '.'+val[2] ).mouseleave(function(){ $('.'+val[2]+'sub').addClass('hidden'); });
+                        $( '.'+val[2] ).click(  function() {    
+                        if ($.inArray( val[2], watch) == -1){
+                            watch.push( val[2] );
+                            localStorage["watch"] = JSON.stringify(watch);
+                            updateData();
+                        } else {
+                            var index = watch.indexOf( val[2] );
+                            if (index > -1) {
+                                watch.splice(index, 1);
+                                localStorage["watch"] = JSON.stringify(watch);
+                            }
+                            updateData();
+                        }
+                        });
+                    }
+                });
+                $( "#sbpbettorscount" ).html('Salty Bettors : <strong>' + (p1.length+p2.length) +'</strong> (<strong class="redtext">' + p1.length + '</strong> | <strong class="bluetext">'+p2.length+'</strong>)</br>');
+                state="locked";
+                
+                //vanilla
+                /*$("#lastbet").hide().html("N/A").fadeIn("slow");
+                if (typeof data[u] != "undefined") {
+                    lastWager = data[u]["w"];
+                    lastPlayer = data[u]["p"];
+                    if (p1to >= p2to) {
+                        odds = ('<span class="redtext">' + (Math.round((p1to / p2to) * 10) / 10) + "</span>:1")
+                    } else {
+                        odds = ('1:<span class="bluetext">' + (Math.round((p2to / p1to) * 10) / 10) + "</span>")
+                    }
+                    payout = (data[u]["p"] == "1" ? ((lastWager / p1to) * p2to) : ((lastWager / p2to) * p1to));
+                    payout = Math.ceil(payout);
+                    $("#odds").html(odds + ' (<span class="greentext">$' + (payout || 0) + "</span>)");
+                    (lastPlayer == "1" ? $("#lastbet").hide().html("$" + lastWager + ' on <span class="redtext">' + p1n + "</span>").fadeIn("slow") : $("#lastbet").hide().html("$" + lastWager + ' on <span class="bluetext">' + p2n + "</span>").fadeIn("slow"))
+                }
+                $("#sbettorscount").html("");
+                $("#sbettors1").hide().html('<span class="redtext"><strong>' + p1n + '</strong></span><div id="bettors1"></div>').fadeIn("slow");
+                $("#sbettors2").hide().html('<span class="bluetext"><strong>' + p2n + '</strong></span><div id="bettors2"></div>').fadeIn("slow");
+                var bettors = [];
+                var count = 0;
+                var level;
+                var mylevel;
+                var levelimage;
+                for (var p in data) {
+                    bettors[+p] = data[p];
+                    if (data[p] != null) {
+                        if (data[p]["w"] != null) {
+                            count++
+                        }
+                    }
+                }
+                bettors.sort(function (a, b) {
+                    return parseFloat(b.w) - parseFloat(a.w)
+                });
+                $("#sbettorscount").html("Salty Bettors:<strong> " + count + "</strong><br/>");
+                $.each(bettors, function (i, v) {
+                    if (bettors[i] != null) {
+                        levelimage = "";
+                        level = bettors[i]["r"];
+                        if (data[u] != null) {
+                            if (data[u]["n"] == bettors[i]["n"]) {
+                                mylevel = level
+                            }
+                        }
+                        if (level > 0) {
+                            levelimage = '<img src="../images/ranksmall/rank' + level + '.png" class="levelimage">'
+                        }
+                        if (bettors[i]["p"] == "1") {
+                            $("#bettors1").append(levelimage + "<p><strong " + (bettors[i]["g"] == 1 ? 'class="goldtext"' : "") + ">" + bettors[i]["n"] + '</strong> <span class="redtext">-</span> <span class="greentext">$' + bettors[i]["w"] + "</span> <span"  + (bettors[i]["w"] == bettors[i]["b"] ? ' class="redtext"' : "") +  ">(" + (Math.ceil((bettors[i]["w"] / bettors[i]["b"]) * 100))  + "%)</span></p>")
+                        } else {
+                            if (bettors[i]["p"] == "2") {
+                                $("#bettors2").append(levelimage + "<p><strong " + (bettors[i]["g"] == 1 ? 'class="goldtext"' : "") + ">" + bettors[i]["n"] + '</strong> <span class="bluetext">-</span> <span class="greentext">$' + bettors[i]["w"] + "</span> <span" + (bettors[i]["w"] == bettors[i]["b"] ? ' class="redtext"' : "") +  ">(" + (Math.ceil((bettors[i]["w"] / bettors[i]["b"]) * 100))  + "%)</span></p>")
+                            }
+                        }
+                    }
+                })
+            } else {
+                if (typeof data[u] != "undefined") {
+                    balance = data[u]["b"] || 0;
+                    $("#balance").hide().html(balance).fadeIn("slow");
+                    if (mylevel > 0) {
+                        $("#rank").html('<img src="../images/ranksmall/rank' + mylevel + '.png" class="levelimage">')
+                    }
+                    $("#wager").rules("add", {
+                        max: balance
+                    })
+                    
+                }
+            }*/
+        }
+        }
+    });
+}
+
+function buttonPress( p ) {
+        if (betstate == "locked") {
+            alert("Bets are locked.")
+        } else {
+            if (isNaN(Number($("#wager").val())) == true) {
+                alert("Please enter a number.")
+            } else {
+                var selectedPlayer = p;
+                $("#selectedplayer").val(selectedPlayer);
+                if(selectedPlayer === 'player1')
+                {
+                    $("#lastbet").hide().html('<img src="../images/loadred.GIF">').fadeIn("slow")
+                } else if(selectedPlayer === 'player2') {
+                    $("#lastbet").hide().html('<img src="../images/loadblue.GIF">').fadeIn("slow")
+                }
+                if (Number($("#wager").val()) > balance) {
+                    alert("You don't have enough Salty Bucks.")
+                } else {
+                    $('#hoverbuttonred').fadeOut("slow");$('#hoverbuttonblue').fadeOut("slow");
+                    $("#fightcard").submit();
+                    return false;
+                }
+            }
+        }    
+}
 
 //Button colouring events
 function callback(i){
     return function(){
-    localStorage["sbbtnrr"+i] = $("#rr").val();
-    localStorage["sbbtnrg"+i] = $("#rg").val();  
-    localStorage["sbbtnrb"+i] = $("#rb").val();  
-    localStorage["sbbtnbr"+i] = $("#br").val();  
-    localStorage["sbbtnbg"+i] = $("#bg").val();  
-    localStorage["sbbtnbb"+i] = $("#bb").val();  
+    localStorage["sbbtnrh"+i] = $("#rhex").val();
+    localStorage["sbbtnbh"+i] = $("#bhex").val();  
     makeButtons();
     }
 }
@@ -41,8 +509,10 @@ function callback(i){
 //Button set to $ Events
 function callbackDol(i){
     return function(){
-        localStorage["sbbtn"+i+"val"] = $("#but"+i+"val").val();  
+        console.log(i);
+        localStorage["sbbtn"+i+"val"] = $("#betinp").val();  
         localStorage["sbbtn"+i+"typ"] = "$";
+        $( "#betinp" ).focus();
         makeButtons();
     }
 }
@@ -50,8 +520,9 @@ function callbackDol(i){
 //Button set to % Events
 function callbackPer(i){
     return function(){
-        localStorage["sbbtn"+i+"val"] = $("#but"+i+"val").val();  
+        localStorage["sbbtn"+i+"val"] = $("#betinp").val();  
         localStorage["sbbtn"+i+"typ"] = "%";
+        $( "#betinp" ).focus();
         makeButtons();
     }
 }
@@ -62,12 +533,20 @@ function callbackRed(i){
         if( localStorage["sbbtn"+i+"typ"] == "$"){
             var salt=parseInt(localStorage["sbbtn"+i+"val"]);
             if( localStorage["sbbtn"+i+"val"][0] === "+" || localStorage["sbbtn"+i+"val"][0] === "-"){ $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0); } else {  $("input#wager").val(parseInt(salt) | 0); }
-            document.getElementsByName("player1")[0].click();
+            if(parseInt($("input#wager").val()) > parseInt($("#balance").text(),10)){
+                $("input#wager").val(parseFloat($("#balance").text(),10) | 0);
+            }
+            //document.getElementsByName("player1")[0].click();
         } else {
             var pct=parseFloat(localStorage["sbbtn"+i+"val"]);
             if( localStorage["sbbtn"+i+"val"][0] === "+" || localStorage["sbbtn"+i+"val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player1")[0].click();
-        }        
+            if(parseInt($("input#wager").val()) > parseInt($("#balance").text(),10)){
+                $("input#wager").val(parseFloat($("#balance").text(),10) | 0);
+            }
+            //document.getElementsByName("player1")[0].click();
+        }
+        buttonPress( 'player1' );
+        //document.getElementsByName("player1")[0].click();
     }
 }
 
@@ -77,55 +556,33 @@ function callbackBlu(i){
         if( localStorage["sbbtn"+i+"typ"] == "$"){
             var salt=parseInt(localStorage["sbbtn"+i+"val"]);
             if( localStorage["sbbtn"+i+"val"][0] === "+" || localStorage["sbbtn"+i+"val"][0] === "-"){ $("input#wager").val(parseInt($("input#wager").val()) + parseInt(salt) | 0); } else {  $("input#wager").val(parseInt(salt) | 0); }
+            if(parseInt($("input#wager").val()) > parseInt($("#balance").text(),10)){
+                $("input#wager").val(parseFloat($("#balance").text(),10) | 0);
+            }
             document.getElementsByName("player2")[0].click();
         } else {
             var pct=parseFloat(localStorage["sbbtn"+i+"val"]);
             if( localStorage["sbbtn"+i+"val"][0] === "+" || localStorage["sbbtn"+i+"val"][0] === "-"){ $("input#wager").val(parseFloat($("input#wager").val()) + parseFloat($("#balance").text(),10)*pct/100 | 0); } else {  $("input#wager").val(parseFloat($("#balance").text(),10)*pct/100 | 0); }
-            document.getElementsByName("player2")[0].click();
+            if(parseInt($("input#wager").val()) > parseInt($("#balance").text(),10)){
+                $("input#wager").val(parseFloat($("#balance").text(),10) | 0);
+            }
+            buttonPress( 'player2' );
+            //document.getElementsByName("player2")[0].click();
         }        
     }
 }
 
-//Loop creating all the quick-bet button events
-for( i = 1; i < 13; i++){
-    $('#but'+i).live('mousedown', callback( i ) );
-    $('#but'+i+'dol').live('mousedown', callbackDol( i ) );
-    $('#but'+i+'per').live('mousedown', callbackPer( i ) );
-    $('#redbtn'+i).live('mousedown', callbackRed( i ) ).live('contextmenu', function(e){ e.preventDefault();});
-    $('#blubtn'+i).live('mousedown', callbackBlu( i ) ).live('contextmenu', function(e){ e.preventDefault();});
-}
-
-//Events to show hover buttons
-$('#hoverred').live({
-  mouseenter: function(){ if(JSON.parse(localStorage["sbHover"]) === true ) { $('#hoverbuttonred').removeClass('hidden'); } }, 
-  mouseleave: function(){ if(JSON.parse(localStorage["sbHover"]) === true ) { $('#hoverbuttonred').addClass('hidden'); } }
-  }
-);
-
-$('#hoverblu').live({
-  mouseenter: function(){ if(JSON.parse(localStorage["sbHover"]) === true ) { $('#hoverbuttonblue').removeClass('hidden');}}, 
-  mouseleave: function(){ if(JSON.parse(localStorage["sbHover"]) === true ) { $('#hoverbuttonblue').addClass('hidden'); }}
-  }
-);
-
 //Events to hide/show buttons when you click on p1/p2name
-$("#p1name").live('mousedown', function(e) { 
-    $( "#redsbbuttonblock" ).toggle();
-    $( "#blusbbuttonblock" ).toggle();
+$("#p1name").click( function(e) {
+    localStorage["buttons"] = localStorage["buttons"]^1
+    $( "#redsbbuttonblock" ).fadeToggle("slow");
+    $( "#blusbbuttonblock" ).fadeToggle("slow");
 });
 
-$("#p2name").live('mousedown', function(e) { 
-    $( "#redsbbuttonblock" ).toggle();
-    $( "#blusbbuttonblock" ).toggle();
-});
-
-//Events to cause new BET! buttons to act like old ones
-$("#redbtn0").live('mousedown', function(e) { 
-            document.getElementsByName("player1")[0].click();
-});
-
-$("#bluebtn0").live('mousedown', function(e) { 
-            document.getElementsByName("player2")[0].click();
+$("#p2name").click( function(e) {
+    localStorage["buttons"] = localStorage["buttons"]^1
+    $( "#redsbbuttonblock" ).fadeToggle("slow");
+    $( "#blusbbuttonblock" ).fadeToggle("slow");
 });
 
 var isOpera = !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0;
@@ -146,7 +603,7 @@ if ( localStorage.getItem("watch") === null || localStorage.getItem("watch") ===
 }
 
 //Main init after loading NOTY, as most things crash if loaded before this library
-requireNOTY("http://planetbanhammer.com/noty.js");
+requireNOTY("http://planetbanhammer.com/noty-2.2.1/js/noty/jquery.noty.js");
 
 //variable declarations
 var xmlhttp;
@@ -199,7 +656,7 @@ var g;
 
 var lastBetInfo;
 
-var version = "SaltyBet+ 2.0.0";
+var version = "SaltyBet+ v2.0.8";
 // Remember to increment
 // x.y.z.a Format
 // x = Major Release
@@ -256,14 +713,14 @@ function getLastBet(){
                     if(payout != '') {
                         if(payout > 0){
                             if( noti === true ){
-                                var first = noty({layout: 'topRight', text: 'Odds '+$( "#odds" ).html()+'<br>'+lastBetInfo, timeout: 2500, type: 'success'});
+                                //var first = noty({layout: 'topRight', text: 'Odds '+$( "#odds" ).html()+'<br>'+lastBetInfo, timeout: 2500, type: 'success'});
                             }
-                            var second = $("#chatWrapper").noty({text: 'Odds '+$( "#odds" ).html()+'<br>'+lastBetInfo, timeout: false, force: true, type: 'success'});
+                            //var second = $("#chatWrapper").noty({text: 'Odds '+$( "#odds" ).html()+'<br>'+lastBetInfo, timeout: false, force: true, type: 'success'});
                         } else {
                             if( noti === true ){
-                                var first = noty({layout: 'topRight', text: 'Odds '+$( "#odds" ).html()+'<br>'+lastBetInfo, timeout: 2500, type: 'warning'});
+                                //var first = noty({layout: 'topRight', text: 'Odds '+$( "#odds" ).html()+'<br>'+lastBetInfo, timeout: 2500, type: 'warning'});
                             }
-                            var second = $("#chatWrapper").noty({text: 'Odds '+$( "#odds" ).html()+'<br>'+lastBetInfo, timeout: false, force: true, type: 'warning'});
+                            //var second = $("#chatWrapper").noty({text: 'Odds '+$( "#odds" ).html()+'<br>'+lastBetInfo, timeout: false, force: true, type: 'warning'});
                         }
                             lastBet = time;
                             localStorage["lastBet"] = lastBet;
@@ -496,7 +953,7 @@ function abbrNum(number, decPlaces) {
     var abbrev = [ "k", "m", "b", "t" ];
 
     // Go through the array backwards, so we do the largest first
-    for (var i=abbrev.length-1; i>=0; i--) {
+    for (var i=3; i>=0; i--) {
 
         // Convert array index to "1000", "1000000", etc
         var size = Math.pow(10,(i+1)*3);
@@ -508,7 +965,7 @@ function abbrNum(number, decPlaces) {
              number = Math.round(number*decPlaces/size)/decPlaces;
 
              // Handle special case where we round up to the next abbreviation
-             if((number == 1000) && (i < abbrev.length - 1)) {
+             if((number == 1000) && (i < 3)) {
                  number = 1;
                  i++;
              }
@@ -524,193 +981,20 @@ function abbrNum(number, decPlaces) {
     return number;
 }
 
-function highlightBets(){
-    $.getJSON( "/zdata.json", function (data) {
-        $("#sbpbettors1").html('<span class="redtext">'+data.p1name+'</span><div id="sbpbetlisthl1" style="border-top: 1px solid rgb(176, 68, 68);"></div><div id="sbpbetlist1"></div>');
-        $("#sbpbettors2").html('<span class="bluetext">'+data.p2name+'</span><div id="sbpbetlisthl2" style="border-top: 1px solid rgb(2, 81, 155);"></div><div id="sbpbetlist2"></div>');
-        var watch = JSON.parse(localStorage.getItem("watch"));
-        var p1 = ([],[]);
-        var p2 = ([],[]);
-        $.each( data, function(i, val){
-            var z = 0;
-            $.each( watch, function(i, v){
-                if( v === val.n ){ z = 1 };
-            });
-            if(val.p == 1){
-                var tempArr = [val.w, val.b, val.n, val.g, val.r, z];
-                p1.push(tempArr);
-            }
-            if(val.p == 2){
-                var tempArr = [val.w, val.b, val.n, val.g, val.r, z];
-                p2.push(tempArr);
-            }            
-        });
-        p1.sort(function(a,b) {return b[0]-a[0];});
-        p2.sort(function(a,b) {return b[0]-a[0];});
-        var odd=true;
-        var hlodd=true;
-        $.each( p1, function(i, val) {
-            var name = '<strong>'+val[2]+'</strong>';
-            var dash = '<span class="redtext"> - </span>';
-            var wager = '<span class="greentext">$'+abbrNum(val[0], 1)+'</span>';
-            var percent = (val[0]/val[1])*100
-            var postwager = '<span class="greentext"> ('+Math.ceil(percent)+'% / $'+abbrNum(val[1], 1)+')</span>';
-            var img = '<img src="../images/ranksmall/rank'+val[4]+'.png" class="levelimage">';
-            var cssClass = '';
-            if (val[4] == 0){ img = ""; }                
-            if(val[3] == 1){ name = '<strong class="goldtext">'+val[2]+'</strong>'; }
-            if( val[5] == 1 ) {
-                hlodd = !hlodd;
-                if( black == true ){
-                    if( hlodd == true){
-                        cssClass = "redblackoddhl"
-                    } else {
-                        cssClass = "redblackevenhl"
-                    }
-                } else {
-                    if( hlodd == true){
-                        cssClass = "redwhiteoddhl"
-                    } else {
-                        cssClass = "redwhiteevenhl"
-                    }
-                }
-                $("#sbpbetlisthl1").append('<div class="'+val[2]+' '+cssClass+'">'+img+'<p>'+name+dash+wager+postwager+'</p></div>')
-                $( '.'+val[2] ).click(  function() {    
-                    if ($.inArray( val[2], watch) == -1){
-                        watch.push( val[2] );
-                        localStorage["watch"] = JSON.stringify(watch);
-                        highlightBets();
-                    } else {
-                        var index = watch.indexOf( val[2] );
-                        if (index > -1) {
-                            watch.splice(index, 1);
-                            localStorage["watch"] = JSON.stringify(watch);
-                        }
-                        highlightBets();
-                    }
-                 });
-            } else {
-                odd = !odd;
-                if( black == true ){
-                    if( odd == true){
-                        cssClass = "redblackodd"
-                    } else {
-                        cssClass = "redblackeven"
-                    }
-                } else {
-                    if( odd == true){
-                        cssClass = "redwhiteodd"
-                    } else {
-                        cssClass = "redwhiteeven"
-                    }
-                }
-                $("#sbpbetlist1").append('<div class="'+val[2]+' '+cssClass+'">'+img+'<p>'+name+dash+wager+postwager+'</p></div>')
-                $( '.'+val[2] ).click(  function() {    
-                    if ($.inArray( val[2], watch) == -1){
-                        watch.push( val[2] );
-                        localStorage["watch"] = JSON.stringify(watch);
-                        highlightBets();
-                    } else {
-                        var index = watch.indexOf( val[2] );
-                        if (index > -1) {
-                            watch.splice(index, 1);
-                            localStorage["watch"] = JSON.stringify(watch);
-                        }
-                        highlightBets();
-                    }
-                 });
-            }
-        });
-        $.each( p2, function(i, val) {            
-            var name = '<strong>'+val[2]+'</strong>';
-            var dash = '<span class="bluetext"> - </span>';
-            var wager = '<span class="greentext">$'+abbrNum(val[0], 1)+'</span>';
-            var percent = (val[0]/val[1])*100
-            var postwager = '<span class="greentext"> ('+Math.ceil(percent)+'% / $'+abbrNum(val[1], 1)+')</span>';
-            var img = '<img src="../images/ranksmall/rank'+val[4]+'.png" class="levelimage">';
-            var cssClass = '';
-            if (val[4] == 0){ img = ""; }                
-            if(val[3] == 1){ name = '<strong class="goldtext">'+val[2]+'</strong>'; }
-            if( val[5] == 1 ) {
-                hlodd = !hlodd;
-                if( black == true ){
-                    if( hlodd == true){
-                        cssClass = "blublackoddhl"
-                    } else {
-                        cssClass = "blublackevenhl"
-                    }
-                } else {
-                    if( hlodd == true){
-                        cssClass = "bluwhiteoddhl"
-                    } else {
-                        cssClass = "bluwhiteevenhl"
-                    }
-                }
-                $("#sbpbetlisthl2").append('<div class="'+val[2]+' '+cssClass+'">'+img+'<p>'+name+dash+wager+postwager+'</p></div>')
-                $( '.'+val[2] ).click(  function() {    
-                    if ($.inArray( val[2], watch) == -1){
-                        watch.push( val[2] );
-                        localStorage["watch"] = JSON.stringify(watch);
-                        highlightBets();
-                    } else {
-                        var index = watch.indexOf( val[2] );
-                        if (index > -1) {
-                            watch.splice(index, 1);
-                            localStorage["watch"] = JSON.stringify(watch);
-                        }
-                        highlightBets();
-                    }
-                 });
-            } else {
-                odd = !odd;
-                if( black == true ){
-                    if( odd == true){
-                        cssClass = "blublackodd"
-                    } else {
-                        cssClass = "blublackeven"
-                    }
-                } else {
-                    if( odd == true){
-                        cssClass = "bluwhiteodd"
-                    } else {
-                        cssClass = "bluwhiteeven"
-                    }
-                }
-                $("#sbpbetlist2").append('<div class="'+val[2]+' '+cssClass+'">'+img+'<p>'+name+dash+wager+postwager+'</p></div>')
-                $( '.'+val[2] ).click(  function() {    
-                    if ($.inArray( val[2], watch) == -1){
-                        watch.push( val[2] );
-                        localStorage["watch"] = JSON.stringify(watch);
-                        highlightBets();
-                    } else {
-                        var index = watch.indexOf( val[2] );
-                        if (index > -1) {
-                            watch.splice(index, 1);
-                            localStorage["watch"] = JSON.stringify(watch);
-                        }
-                        highlightBets();
-                    }
-                 });
-            }
-            });
-        $( "#sbpbettorscount" ).html('Salty Bettors : <strong>' + (p1.length+p2.length) +'</strong> (<strong class="redtext">' + p1.length + '</strong> | <strong class="bluetext">'+p2.length+'</strong>)</br>');
-        
-        state="locked";
-    });
-}
-
 function togPan(){
     pan = !pan;
     makeButtons();
+    updateState();
     if( pan == true){
         $( '#bottomcontent' ).css("min-height", "1px");
         $( '#bottomcontent' ).css("height", "81px");
         $( '#bottomcontent' ).css("bottom", "0px");
         $( '.betcard' ).addClass("short");
+        $( '#options' ).removeClass("short");
         $( '#stream' ).css("bottom", "81px");
         
-        $( '#status' ).css("display", "none");
-        $( '#footer' ).css("display", "none");
+        $( '#status' ).fadeOut("fast");
+        $( '#footer' ).fadeOut("fast");
         $( '.betcard .left br' ).eq(1).hide();
         $( '.betcard .right br' ).eq(1).hide();
         //$( '.field' ).addClass("hidden");
@@ -727,12 +1011,16 @@ function togPan(){
         $( '.betcard .right br' ).eq(1).show();
         //$( '.field' ).removeClass("hidden");
     }
-    
-    $(window).trigger('resize');
+    if(localStorage["buttons"] === 1){
+        $( "#redsbbuttonblock" ).css("display", "none");
+        $( "#blusbbuttonblock" ).css("display", "none");
+    }
+    setAspectRatioSBP();
+    //$(window).trigger('resize');
 }
 
 function getOdds(){
-    if($( "#odds").text() === "N/A" && $( "#betstatus").text() === "Bets are locked until the next match."){
+    if($( "#odds").text() === "N/A"){
         p1w = parseInt($( "#player1wager").text().replace(/,/g, '').substring(1) );
         p2w = parseInt($( "#player2wager").text().replace(/,/g, '').substring(1) );
         
@@ -746,8 +1034,7 @@ function getOdds(){
 }
 
 function getAnn(){
-
-    $.ajax({
+    /*$.ajax({
         url: "http://www.planetbanhammer.com/sb+.js",
         dataType: "script",
         async: false,
@@ -763,82 +1050,7 @@ function getAnn(){
         }
     });
     
-    window.setTimeout(getAnn, 5000);
-}
-
-
-function update(){
-                console.log("var state = '"+state+"'");
-                zdata = $.ajax({
-                    type: "get",
-                    url: "/zdata.json",
-                    data: "",
-                    dataType: "json",
-                    cache: "false",
-                    timeout: 30000,
-                    success: function (data) {
-                        obj = eval("(" + zdata.responseText +")");
-                        //console.log(obj);
-                    }
-                });
-                
-                zstate = $.ajax({
-                    type: "get",
-                    url: "/state.json",
-                    data: "",
-                    dataType: "json",
-                    cache: "false",
-                    timeout: 30000,
-                    success: function (data) {
-                        objs = eval("("+zstate.responseText+")");
-                        console.log(objs["status"]);
-                        if(objs["status"]==="open"){
-                            if(state != "open"){
-                                state = "open";
-                                $("#sbpbettors1").html('<span class="redtext">'+objs["p1name"]+'</span><div id="sbpbettors1" style="border-top: 1px solid rgb(176, 68, 68);"><img src="images/potload.gif"></div>');
-                                $("#sbpbettors2").html('<span class="bluetext">'+objs["p2name"]+'</span><div id="sbpbettors1" style="border-top: 1px solid rgb(2, 81, 155);"><img src="images/potload.gif"></div>'); 
-                 
-                                if( $(".goldtext:first").text() === $("a").eq(3).text() ){
-                                    g = true;
-                                } else {
-                                    g = false;
-                                }
-                                getStats();               
-                                //setTimeout(firstTime, 1000);
-                                updateStats()
-                                if ( g === true) {
-                                    getLastBet();
-                                    }
-                            }
-                                setTimeout(update, 1000);
-                            } else if (objs["status"] === "locked") {
-                                if(state != "locked"){
-                                    highlightBets();
-                                    getOdds();
-                                }                                    
-                                setTimeout(update, 1000);
-                            } else {
-                                setTimeout(update, 1000);
-                            }
-                  	if( $( '#lastbet' ).html() === '<img src="../images/loadred.GIF">'){
-        			$( ".redborder" ).eq(0).addClass("goldborder");
-        			$( ".blueborder" ).eq(0).removeClass("goldborder");
-    			} else if ( $( '#lastbet' ).html() === '<img src="../images/loadblue.GIF">'){
-        			$( ".blueborder" ).eq(0).addClass("goldborder");
-        			$( ".redborder" ).eq(0).removeClass("goldborder");
-    			} else if ( $( '#lastbet' ).html() === 'N/A'){
-        			$( ".blueborder" ).eq(0).removeClass("goldborder");
-        			$( ".redborder" ).eq(0).removeClass("goldborder");
-    			} else {
-        			$( ".blueborder" ).eq(0).removeClass("goldborder");
-        			$( ".redborder" ).eq(0).removeClass("goldborder");
-    			}
-                    },
-                    error: function(){
-                        setTimeout(update,2500);
-                    }
-                });
-    
+    window.setTimeout(getAnn, 5000);*/
 }
 
 function toggleWideScreen(){
@@ -866,6 +1078,7 @@ function require(script) {
 }
 
 function toggleBlack(){
+    black = !black;
     $('style:first').remove();
     if( black === true ){
         $( 'head' ).prepend('<style> body ::-webkit-scrollbar { width: 12px;}  ::-webkit-scrollbar-track { background-color: #212121 !important; }::-webkit-scrollbar-thumb { background-color: #cdcdcd !important; } ::-webkit-scrollbar-thumb:hover { background-color: #dddddd !important; } </style>');
@@ -878,12 +1091,10 @@ function toggleBlack(){
         $( 'body' ).css({"background-color": "", "color": ""});
         $( '#status' ).css({"background": "linear-gradient(#FFFFFF,#E6EAED)", "color": "rgb(0, 0, 0)"});
         $( '#logo ').eq(0).html('<img src="http://www.planetbanhammer.com/images/smallogo2.png">');
-        $( 'body' ).removeClass('black-bar').addClass('white-bar');
-    }
-    black = !black;
+        $( 'body' ).removeClass('black-bar').addClass('white-bar');    }
+    
     //console.log(black);
     localStorage["black"] = black;
-    highlightBets();
 }
 
 function toggleNoti(){
@@ -906,55 +1117,50 @@ function makeButtons(){
     $( '.betbuttonred' ).parent().parent().parent().append('<div id="redsbbuttonblock" class="right"></div>');
     
     if(pan == false){    
-    makeButton("sbbtn1val", "sbbtn1typ", "btn1", 40, localStorage['sbbtnrr1'], localStorage['sbbtnrg1'], localStorage['sbbtnrb1'], localStorage['sbbtnbr1'], localStorage['sbbtnbg1'], localStorage['sbbtnbb1']);
-    makeButton("sbbtn2val", "sbbtn2typ", "btn2", 40, localStorage['sbbtnrr2'], localStorage['sbbtnrg2'], localStorage['sbbtnrb2'], localStorage['sbbtnbr2'], localStorage['sbbtnbg2'], localStorage['sbbtnbb2']);
-    makeButton("sbbtn3val", "sbbtn3typ", "btn3", 40, localStorage['sbbtnrr3'], localStorage['sbbtnrg3'], localStorage['sbbtnrb3'], localStorage['sbbtnbr3'], localStorage['sbbtnbg3'], localStorage['sbbtnbb3']);
-    makeButton("sbbtn4val", "sbbtn4typ", "btn4", 40, localStorage['sbbtnrr4'], localStorage['sbbtnrg4'], localStorage['sbbtnrb4'], localStorage['sbbtnbr4'], localStorage['sbbtnbg4'], localStorage['sbbtnbb4']);
-    makeButton("sbbtn5val", "sbbtn5typ", "btn5", 40, localStorage['sbbtnrr5'], localStorage['sbbtnrg5'], localStorage['sbbtnrb5'], localStorage['sbbtnbr5'], localStorage['sbbtnbg5'], localStorage['sbbtnbb5']);
-    makeButton("sbbtn6val", "sbbtn6typ", "btn6", 40, localStorage['sbbtnrr6'], localStorage['sbbtnrg6'], localStorage['sbbtnrb6'], localStorage['sbbtnbr6'], localStorage['sbbtnbg6'], localStorage['sbbtnbb6']);
-        makeHoverButton("sbbtn7val", "sbbtn7typ", "btn7", 40, localStorage['sbbtnrr7'], localStorage['sbbtnrg7'], localStorage['sbbtnrb7'], localStorage['sbbtnbr7'], localStorage['sbbtnbg7'], localStorage['sbbtnbb7']);
-        makeHoverButton("sbbtn8val", "sbbtn8typ", "btn8", 40, localStorage['sbbtnrr8'], localStorage['sbbtnrg8'], localStorage['sbbtnrb8'], localStorage['sbbtnbr8'], localStorage['sbbtnbg8'], localStorage['sbbtnbb8']);
-        makeHoverButton("sbbtn9val", "sbbtn9typ", "btn9", 40, localStorage['sbbtnrr9'], localStorage['sbbtnrg9'], localStorage['sbbtnrb9'], localStorage['sbbtnbr9'], localStorage['sbbtnbg9'], localStorage['sbbtnbb9']);
-        makeHoverButton("sbbtn10val", "sbbtn10typ", "btn10", 40, localStorage['sbbtnrr10'], localStorage['sbbtnrg10'], localStorage['sbbtnrb10'], localStorage['sbbtnbr10'], localStorage['sbbtnbg10'], localStorage['sbbtnbb10']);
-        makeHoverButton("sbbtn11val", "sbbtn11typ", "btn11", 40, localStorage['sbbtnrr11'], localStorage['sbbtnrg11'], localStorage['sbbtnrb11'], localStorage['sbbtnbr11'], localStorage['sbbtnbg11'], localStorage['sbbtnbb11']);
-        makeHoverButton("sbbtn12val", "sbbtn12typ", "btn12", 40, localStorage['sbbtnrr12'], localStorage['sbbtnrg12'], localStorage['sbbtnrb12'], localStorage['sbbtnbr12'], localStorage['sbbtnbg12'], localStorage['sbbtnbb12']);
+    makeButton("sbbtn10val", "sbbtn10typ", "btn10", 40, localStorage['sbbtnrh10'], localStorage['sbbtnbh10']);
+    makeButton("sbbtn11val", "sbbtn11typ", "btn11", 40, localStorage['sbbtnrh11'], localStorage['sbbtnbh11']);
+    makeButton("sbbtn12val", "sbbtn12typ", "btn12", 40, localStorage['sbbtnrh12'], localStorage['sbbtnbh12']);
+    makeButton("sbbtn7val", "sbbtn7typ", "btn7", 40, localStorage['sbbtnrh7'], localStorage['sbbtnbh7']);
+    makeButton("sbbtn8val", "sbbtn8typ", "btn8", 40, localStorage['sbbtnrh8'], localStorage['sbbtnbh8']);
+    makeButton("sbbtn9val", "sbbtn9typ", "btn9", 40, localStorage['sbbtnrh9'], localStorage['sbbtnbh9']);
+        makeHoverButton("sbbtn4val", "sbbtn4typ", "btn4", 40, localStorage['sbbtnrh4'], localStorage['sbbtnbh4']);
+        makeHoverButton("sbbtn5val", "sbbtn5typ", "btn5", 40, localStorage['sbbtnrh5'], localStorage['sbbtnbh5']);
+        makeHoverButton("sbbtn6val", "sbbtn6typ", "btn6", 40, localStorage['sbbtnrh6'], localStorage['sbbtnbh6']);
+        makeHoverButton("sbbtn1val", "sbbtn1typ", "btn1", 40, localStorage['sbbtnrh1'], localStorage['sbbtnbh1']);
+        makeHoverButton("sbbtn2val", "sbbtn2typ", "btn2", 40, localStorage['sbbtnrh2'], localStorage['sbbtnbh2']);
+        makeHoverButton("sbbtn3val", "sbbtn3typ", "btn3", 40, localStorage['sbbtnrh3'], localStorage['sbbtnbh3']);
     } else {
-            makeButton("sbbtn4val", "sbbtn4typ", "btn4", 90, localStorage['sbbtnrr4'], localStorage['sbbtnrg4'], localStorage['sbbtnrb4'], localStorage['sbbtnbr4'], localStorage['sbbtnbg4'], localStorage['sbbtnbb4']);
-    makeButton("sbbtn5val", "sbbtn5typ", "btn5", 90, localStorage['sbbtnrr5'], localStorage['sbbtnrg5'], localStorage['sbbtnrb5'], localStorage['sbbtnbr5'], localStorage['sbbtnbg5'], localStorage['sbbtnbb5']);
-    makeButton("sbbtn6val", "sbbtn6typ", "btn6", 90, localStorage['sbbtnrr6'], localStorage['sbbtnrg6'], localStorage['sbbtnrb6'], localStorage['sbbtnbr6'], localStorage['sbbtnbg6'], localStorage['sbbtnbb6']);
-makeHoverButton("sbbtn10val", "sbbtn10typ", "btn10", 90, localStorage['sbbtnrr10'], localStorage['sbbtnrg10'], localStorage['sbbtnrb10'], localStorage['sbbtnbr10'], localStorage['sbbtnbg10'], localStorage['sbbtnbb10']);
-        makeHoverButton("sbbtn11val", "sbbtn11typ", "btn11", 90, localStorage['sbbtnrr11'], localStorage['sbbtnrg11'], localStorage['sbbtnrb11'], localStorage['sbbtnbr11'], localStorage['sbbtnbg11'], localStorage['sbbtnbb11']);
-        makeHoverButton("sbbtn12val", "sbbtn12typ", "btn12", 90, localStorage['sbbtnrr12'], localStorage['sbbtnrg12'], localStorage['sbbtnrb12'], localStorage['sbbtnbr12'], localStorage['sbbtnbg12'], localStorage['sbbtnbb12']);
+        makeNonHoverButton("sbbtn7val", "sbbtn7typ", "btn7", 90, localStorage['sbbtnrh7'], localStorage['sbbtnbh7']);
+        makeNonHoverButton("sbbtn8val", "sbbtn8typ", "btn8", 90, localStorage['sbbtnrh8'], localStorage['sbbtnbh8']);
+        makeNonHoverButton("sbbtn9val", "sbbtn9typ", "btn9", 90, localStorage['sbbtnrh9'], localStorage['sbbtnbh9']);
+        makeHoverButton("sbbtn4val", "sbbtn4typ", "btn4", 40, localStorage['sbbtnrh4'], localStorage['sbbtnbh4']);
+        makeHoverButton("sbbtn5val", "sbbtn5typ", "btn5", 40, localStorage['sbbtnrh5'], localStorage['sbbtnbh5']);
+        makeHoverButton("sbbtn6val", "sbbtn6typ", "btn6", 50, localStorage['sbbtnrh6'], localStorage['sbbtnbh6']);
+        makeHoverButton("sbbtn1val", "sbbtn1typ", "btn1", 40, localStorage['sbbtnrh1'], localStorage['sbbtnbh1']);
+        makeHoverButton("sbbtn2val", "sbbtn2typ", "btn2", 40, localStorage['sbbtnrh2'], localStorage['sbbtnbh2']);
+        makeHoverButton("sbbtn3val", "sbbtn3typ", "btn3", 40, localStorage['sbbtnrh3'], localStorage['sbbtnbh3']);
     }
+    updateState();
 }
 
-function m(n,d){x=(''+n).length,p=Math.pow,d=p(10,d)
+function m(n,d){
+x=(''+n).length,
+p=Math.pow,
+d=p(10,d)
 x-=x%3
+if( n < 1000) return n;
 return Math.round(n*d/p(10,x))/d+" kMGTPE"[x/3]}
 
-function makeHoverButton(button, buttontype, id, height, rr, rg, rb, br, bg, bb){
-
-	value= localStorage[button];
-	type = localStorage[buttontype];
-
-	if(value===undefined)
-		value=10;
-        
-    if(type===undefined)
-        type = "$";
-    localStorage[button] = value;
-    localStorage[buttontype] = type;
-	// HTML injection
-    if( type == "$"){       
-        $("#hoverbuttonred").prepend('<div style="height:'+height+'%; float:right; padding-bottom:5%; padding-left:5px;"><input style="background: rgb('+rr+', '+rg+', '+rb+') no-repeat center center; box-shadow: 0px 9px 0px rgba('+(rr-20)+', '+(rg-20)+', '+(rb-20)+', '+1+'), 0px 9px 25px rgba(0,0,0,.7);" name="valred'+id+'" type="button" value="$'+m(value,1)+'" class="newsmbetbuttonred" id="red'+id+'"></div> ');
-        $("#hoverbuttonblue").prepend('<div style="height:'+height+'%; float:left;  padding-bottom:5%; padding-right:5px;"><input style="background: rgb('+br+', '+bg+', '+bb+') no-repeat center center; box-shadow: 0px 9px 0px rgba('+(br-20)+', '+(bg-20)+', '+(bb-20)+', '+1+'), 0px 9px 25px rgba(0,0,0,.7);"name="valblu'+id+'" type="button" value="$'+m(value,1)+'" class="newsmbetbuttonblue" id="blu'+id+'"></div>');         
-    } else {
-        $("#hoverbuttonred").prepend('<div style="height:'+height+'%; float:right; padding-bottom:5%; padding-left:5px;"><input style="background: rgb('+rr+', '+rg+', '+rb+') no-repeat center center; box-shadow: 0px 9px 0px rgba('+(rr-20)+', '+(rg-20)+', '+(rb-20)+', '+1+'), 0px 9px 25px rgba(0,0,0,.7);"name="valred'+id+'" type="button" value="'+(value)+'%" class="newsmbetbuttonred" id="red'+id+'"></div> ');
-        $("#hoverbuttonblue").prepend('<div style="height:'+height+'%; float:left;  padding-bottom:5%; padding-right:5px;"><input style="background: rgb('+br+', '+bg+', '+bb+') no-repeat center center; box-shadow: 0px 9px 0px rgba('+(br-20)+', '+(bg-20)+', '+(bb-20)+', '+1+'), 0px 9px 25px rgba(0,0,0,.7);"name="valblu'+id+'" type="button" value="'+(value)+'%" class="newsmbetbuttonblue" id="blu'+id+'"></div>');   
-    }
+function shadeColor(color, percent) {   
+    var num = parseInt(color,16),
+    amt = Math.round(2.55 * percent),
+    R = (num >> 16) + amt,
+    G = (num >> 8 & 0x00FF) + amt,
+    B = (num & 0x0000FF) + amt;
+    return (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255)).toString(16).slice(1);
 }
 
-function makeButton(button, buttontype, id, height, rr, rg, rb, br, bg, bb){
+function makeNonHoverButton(button, buttontype, id, height, rh, bh){
 
 	value= localStorage[button];
 	type = localStorage[buttontype];
@@ -968,16 +1174,260 @@ function makeButton(button, buttontype, id, height, rr, rg, rb, br, bg, bb){
     localStorage[buttontype] = type;
 	// HTML injection
     if( type == "$"){
-        $("#redsbbuttonblock").prepend('<div style="height:'+height+'%; float:right; padding-bottom:5%; padding-left:5px;"><input style="background: rgb('+rr+', '+rg+', '+rb+') no-repeat center center; box-shadow: 0px 9px 0px rgba('+(rr-20)+', '+(rg-20)+', '+(rb-20)+', '+1+'), 0px 9px 25px rgba(0,0,0,.7);" name="valred'+id+'" type="button" value="$'+m(value,1)+'" class="newsmbetbuttonred" id="red'+id+'"></div> ');
-        $("#blusbbuttonblock").prepend('<div style="height:'+height+'%; float:left;  padding-bottom:5%; padding-right:5px;"><input style="background: rgb('+br+', '+bg+', '+bb+') no-repeat center center; box-shadow: 0px 9px 0px rgba('+(br-20)+', '+(bg-20)+', '+(bb-20)+', '+1+'), 0px 9px 25px rgba(0,0,0,.7);" name="valblu'+id+'" type="button" value="$'+m(value,1)+'" class="newsmbetbuttonblue" id="blu'+id+'"></div>');         
-        $("#hoverbuttonred").prepend('<div style="height:'+height+'%; float:right; padding-bottom:5%; padding-left:5px;"><input style="background: rgb('+rr+', '+rg+', '+rb+') no-repeat center center; box-shadow: 0px 9px 0px rgba('+(rr-20)+', '+(rg-20)+', '+(rb-20)+', '+1+'), 0px 9px 25px rgba(0,0,0,.7);" name="valred'+id+'" type="button" value="$'+m(value,1)+'" class="newsmbetbuttonred" id="red'+id+'"></div> ');
-        $("#hoverbuttonblue").prepend('<div style="height:'+height+'%; float:left;  padding-bottom:5%; padding-right:5px;"><input style="background: rgb('+br+', '+bg+', '+bb+') no-repeat center center; box-shadow: 0px 9px 0px rgba('+(br-20)+', '+(bg-20)+', '+(bb-20)+', '+1+'), 0px 9px 25px rgba(0,0,0,.7);" name="valblu'+id+'" type="button" value="$'+m(value,1)+'" class="newsmbetbuttonblue" id="blu'+id+'"></div>');         
+        var redSha = shadeColor(rh, -25);
+        var bluSha = shadeColor(bh, -25);
+        $("#redsbbuttonblock").prepend('<div style="height:'+height+'%; float:right; padding-bottom:5%; padding-left:5px;"><input style="background: #'+rh+' no-repeat center center; box-shadow: 0px 9px 0px #'+redSha+', 0px 9px 25px rgba(0,0,0,.7);" name="player1" type="submit" value="'+m(value,1)+'%" class="newsmbetbuttonred" id="red'+id+'"></div> ');
+        $("#blusbbuttonblock").prepend('<div style="height:'+height+'%; float:left;  padding-bottom:5%; padding-right:5px;"><input style="background: #'+bh+' no-repeat center center; box-shadow: 0px 9px 0px #'+bluSha+', 0px 9px 25px rgba(0,0,0,.7);"name="player2" type="submit" value="'+m(value,1)+'%" class="newsmbetbuttonblue" id="blu'+id+'"></div>');         
     } else {
-        $("#redsbbuttonblock").prepend('<div style="height:'+height+'%; float:right; padding-bottom:5%; padding-left:5px;"><input style="background: rgb('+rr+', '+rg+', '+rb+') no-repeat center center; box-shadow: 0px 9px 0px rgba('+(rr-20)+', '+(rg-20)+', '+(rb-20)+', '+1+'), 0px 9px 25px rgba(0,0,0,.7);" name="valred'+id+'" type="button" value="'+(value)+'%" class="newsmbetbuttonred" id="red'+id+'" ></div>');
-        $("#blusbbuttonblock").prepend('<div style="height:'+height+'%; float:left;  padding-bottom:5%; padding-right:5px;"><input style="background: rgb('+br+', '+bg+', '+bb+') no-repeat center center; box-shadow: 0px 9px 0px rgba('+(br-20)+', '+(bg-20)+', '+(bb-20)+', '+1+'), 0px 9px 25px rgba(0,0,0,.7);" name="valblu'+id+'" type="button" value="'+(value)+'%" class="newsmbetbuttonblue" id="blu'+id+'"></div>');
-        $("#hoverbuttonred").prepend('<div style="height:'+height+'%; float:right; padding-bottom:5%; padding-left:5px;"><input style="background: rgb('+rr+', '+rg+', '+rb+') no-repeat center center; box-shadow: 0px 9px 0px rgba('+(rr-20)+', '+(rg-20)+', '+(rb-20)+', '+1+'), 0px 9px 25px rgba(0,0,0,.7);" name="valred'+id+'" type="button" value="'+(value)+'%" class="newsmbetbuttonred" id="red'+id+'"></div> ');
-        $("#hoverbuttonblue").prepend('<div style="height:'+height+'%; float:left;  padding-bottom:5%; padding-right:5px;"><input style="background: rgb('+br+', '+bg+', '+bb+') no-repeat center center; box-shadow: 0px 9px 0px rgba('+(br-20)+', '+(bg-20)+', '+(bb-20)+', '+1+'), 0px 9px 25px rgba(0,0,0,.7);" name="valblu'+id+'" type="button" value="'+(value)+'%" class="newsmbetbuttonblue" id="blu'+id+'"></div>');   
+        var redSha = shadeColor(rh, -25);
+        var bluSha = shadeColor(bh, -25);
+        $("#redsbbuttonblock").prepend('<div style="height:'+height+'%; float:right; padding-bottom:5%; padding-left:5px;"><input style="background: #'+rh+' no-repeat center center; box-shadow: 0px 9px 0px #'+redSha+', 0px 9px 25px rgba(0,0,0,.7);" name="player1" type="submit" value="'+m(value,1)+'%" class="newsmbetbuttonred" id="red'+id+'"></div> ');
+        $("#blusbbuttonblock").prepend('<div style="height:'+height+'%; float:left;  padding-bottom:5%; padding-right:5px;"><input style="background: #'+bh+' no-repeat center center; box-shadow: 0px 9px 0px #'+bluSha+', 0px 9px 25px rgba(0,0,0,.7);"name="player2" type="submit" value="'+m(value,1)+'%" class="newsmbetbuttonblue" id="blu'+id+'"></div>');         
     }
+}
+
+function makeHoverButton(button, buttontype, id, height, rh, bh){
+
+	value= localStorage[button];
+	type = localStorage[buttontype];
+
+	if(value===undefined)
+		value=10;
+        
+    if(type===undefined)
+        type = "$";
+    localStorage[button] = value;
+    localStorage[buttontype] = type;
+	// HTML injection
+    if( type == "$"){
+        var redSha = shadeColor(rh, -25);
+        var bluSha = shadeColor(bh, -25);
+        $("#hoverbuttonred").prepend('<div style="height:'+height+'%; float:right; padding-bottom:5%; padding-left:5px;"><input style="background: #'+rh+' no-repeat center center; box-shadow: 0px 9px 0px #'+redSha+', 0px 9px 25px rgba(0,0,0,.7);" name="player1" type="submit" value="$'+m(value,1)+'" class="newsmbetbuttonred" id="red'+id+'"></div> ');
+        $("#hoverbuttonblue").prepend('<div style="height:'+height+'%; float:left;  padding-bottom:5%; padding-right:5px;"><input style="background: #'+bh+' no-repeat center center; box-shadow: 0px 9px 0px #'+bluSha+', 0px 9px 25px rgba(0,0,0,.7);"name="player2" type="submit" value="$'+m(value,1)+'" class="newsmbetbuttonblue" id="blu'+id+'"></div>');         
+    } else {
+        var redSha = shadeColor(rh, -25);
+        var bluSha = shadeColor(bh, -25);
+        $("#hoverbuttonred").prepend('<div style="height:'+height+'%; float:right; padding-bottom:5%; padding-left:5px;"><input style="background: #'+rh+' no-repeat center center; box-shadow: 0px 9px 0px #'+redSha+', 0px 9px 25px rgba(0,0,0,.7);" name="player1" type="submit" value="'+m(value,1)+'%" class="newsmbetbuttonred" id="red'+id+'"></div> ');
+        $("#hoverbuttonblue").prepend('<div style="height:'+height+'%; float:left;  padding-bottom:5%; padding-right:5px;"><input style="background: #'+bh+' no-repeat center center; box-shadow: 0px 9px 0px #'+bluSha+', 0px 9px 25px rgba(0,0,0,.7);"name="player2" type="submit" value="'+m(value,1)+'%" class="newsmbetbuttonblue" id="blu'+id+'"></div>');         
+    }
+}
+
+function makeButton(button, buttontype, id, height, rh, bh){
+	value= localStorage[button];
+	type = localStorage[buttontype];
+
+	if(value===undefined)
+		value=10;
+        
+    if(type===undefined)
+        type = "$";
+    localStorage[button] = value;
+    localStorage[buttontype] = type;
+	// HTML injection
+    if( type == "$"){
+        var redSha = shadeColor(rh, -25);
+        var bluSha = shadeColor(bh, -25);
+        $("#hoverbuttonred").prepend('<div style="height:'+height+'%; float:right; padding-bottom:5%; padding-left:5px;"><input style="background: #'+rh+' no-repeat center center; box-shadow: 0px 9px 0px #'+redSha+', 0px 9px 25px rgba(0,0,0,.7);" name="player1" type="submit" value="$'+m(value,1)+'" class="newsmbetbuttonred" id="red'+id+'"></div> ');
+        $("#hoverbuttonblue").prepend('<div style="height:'+height+'%; float:left;  padding-bottom:5%; padding-right:5px;"><input style="background: #'+bh+' no-repeat center center; box-shadow: 0px 9px 0px #'+bluSha+', 0px 9px 25px rgba(0,0,0,.7);"name="player2" type="submit" value="$'+m(value,1)+'" class="newsmbetbuttonblue" id="blu'+id+'"></div>');         
+        $("#redsbbuttonblock").prepend('<div style="height:'+height+'%; float:right; padding-bottom:5%; padding-left:5px;"><input style="background: #'+rh+' no-repeat center center; box-shadow: 0px 9px 0px #'+redSha+', 0px 9px 25px rgba(0,0,0,.7);" name="player1" type="submit" value="$'+m(value,1)+'" class="newsmbetbuttonred" id="red'+id+'"></div> ');
+        $("#blusbbuttonblock").prepend('<div style="height:'+height+'%; float:left;  padding-bottom:5%; padding-right:5px;"><input style="background: #'+bh+' no-repeat center center; box-shadow: 0px 9px 0px #'+bluSha+', 0px 9px 25px rgba(0,0,0,.7);"name="player2" type="submit" value="$'+m(value,1)+'" class="newsmbetbuttonblue" id="blu'+id+'"></div>');         
+    } else {
+        var redSha = shadeColor(rh, -25);
+        var bluSha = shadeColor(bh, -25);
+        $("#hoverbuttonred").prepend('<div style="height:'+height+'%; float:right; padding-bottom:5%; padding-left:5px;"><input style="background: #'+rh+' no-repeat center center; box-shadow: 0px 9px 0px #'+redSha+', 0px 9px 25px rgba(0,0,0,.7);" name="player1" type="submit" value="'+m(value,1)+'%" class="newsmbetbuttonred" id="red'+id+'"></div> ');
+        $("#hoverbuttonblue").prepend('<div style="height:'+height+'%; float:left;  padding-bottom:5%; padding-right:5px;"><input style="background: #'+bh+' no-repeat center center; box-shadow: 0px 9px 0px #'+bluSha+', 0px 9px 25px rgba(0,0,0,.7);"name="player2" type="submit" value="'+m(value,1)+'%" class="newsmbetbuttonblue" id="blu'+id+'"></div>');         
+        $("#redsbbuttonblock").prepend('<div style="height:'+height+'%; float:right; padding-bottom:5%; padding-left:5px;"><input style="background: #'+rh+' no-repeat center center; box-shadow: 0px 9px 0px #'+redSha+', 0px 9px 25px rgba(0,0,0,.7);" name="player1" type="submit" value="'+m(value,1)+'%" class="newsmbetbuttonred" id="red'+id+'"></div> ');
+        $("#blusbbuttonblock").prepend('<div style="height:'+height+'%; float:left;  padding-bottom:5%; padding-right:5px;"><input style="background: #'+bh+' no-repeat center center; box-shadow: 0px 9px 0px #'+bluSha+', 0px 9px 25px rgba(0,0,0,.7);"name="player2" type="submit" value="'+m(value,1)+'%" class="newsmbetbuttonblue" id="blu'+id+'"></div>');         
+    }
+}
+
+function makeColButton( ele, id, value, height, width, rr, rg, rb){
+    $(ele).prepend('<div style="height:'+height+'px; float:left; padding-bottom:12px; padding-left:5px;"><button style="background: rgb('+rr+', '+rg+', '+rb+') no-repeat center center !important; box-shadow: 0px 9px 0px rgba('+(rr-20)+', '+(rg-20)+', '+(rb-20)+', '+1+'), 0px 9px 25px rgba(0,0,0,.7) !important;" name="" type="submit" value="'+value+'" class="newsmbetbuttonred" id="'+id+'">SET!</button></div> ');
+}    
+
+function requireUI(script) {
+    $.ajax({
+        url: script,
+        dataType: "script",
+        async: false,
+        success: function () {            
+            if( localStorage["top"] === 'undefined' || localStorage["left"] === 'undefined' ){
+                localStorage["top"] = "41px;"
+                localStorage["left"] = "66%";    
+            }
+    
+            $( 'body' ).append('<div id="options" class="betcard redborder" style="position: absolute;top: '+localStorage["top"]+'px;left: '+localStorage["left"]+'px;width:300px;height:auto;display: none;color: white;">\
+            \
+            <div id="hovergen" style="clear:both;">\
+                <div id="gentext"style="text-align:center;border-bottom: 1px solid #D14836;cursor:pointer"><span>General Options</span></div>\
+                <div id="geninput" style="text-align:center;display: none;">\
+                </div>\
+                <div id="genselect" style="margin-left:auto;margin-right:auto;width: 230px; display: none;">\
+                    <button id="toggle">Toggle Notifications</button></br>\
+                    <button id="toggleButtons">Toggle Hover Buttons</button></br>\
+                </div>\
+            </div>\
+            \
+            \
+            <div id="hoverthm" style="clear:both;">\
+                <div id="thmtext"style="text-align:center;border-bottom: 1px solid #D14836;cursor:pointer"><span>Theme Options</span></div>\
+                <div id="thminput" style="text-align:center;display: none;">\
+                <span>Just Kidding! Not implemented yet</span>\
+                </div>\
+                <div id="thmselect" style="margin-left:auto;margin-right:auto;width: 230px; display: none;"></div>\
+            </div>\
+            \
+            <div id="hoverbetinp" style="clear:both;cursor:pointer">\
+                <div id="bettext"style="text-align:center;border-bottom: 1px solid #D14836;cursor:pointer"><span>Bet Button Options</span></div>\
+                <div id="betinput" style="text-align:center;display: none;">\
+                    <input style="margin-left:auto;margin-right:auto;font-size: 1.4em;width: 60%;border: 2px solid #D14836;border-radius: 10px;background: rgb(99, 99, 99);color: white;outline: none;}" id="betinp"; type="text"><br/>\
+                </div>\
+                <div id="betselect" style="margin-left:auto;margin-right:auto;width: 230px; display: none;">\
+                <div id="dolwrap" style="float:left;">\
+                    <div id="doltext "style="text-align:center;border-bottom: 1px solid #D14836;margin-bottom:5px;"><span>Dollar Buttons</span></div>\
+                    <div id="dolselect" style="margin-left:auto;margin-right:auto;width: 230px;"></div>\
+                </div><div id="perwrap" style="float:left;">\
+                    <div id="pertext "style="text-align:center;border-bottom: 1px solid #025199;margin-bottom:5px;"><span>Percent Buttons</span></div>\
+                    <div id="perselect" style="margin-left:auto;margin-right:auto;width: 230px;"></div>\
+                </div>\
+                </div>\
+            </div>\
+            \
+            <div id="hovercolour" style="clear:both;">\
+            <div id="colourtext"  style="text-align:center;border-bottom: 1px solid #D14836;cursor:pointer"><span>Colour Options</span></div>\
+            <div id="colourinput" style="text-align:center;display: none;">\
+            <input style="margin-left:auto;margin-right:auto;font-size: 1.4em;width: 60%;border: 2px solid #D14836;border-radius: 10px;background: rgb(99, 99, 99);color: white;outline: none;}" id="rhex" value="b04444" type="text"><br/>\
+            <input style="margin-left:auto;margin-right:auto;font-size: 1.4em;width: 60%;border: 2px solid #025199;border-radius: 10px;background: rgb(99, 99, 99);color: white;outline: none;}" id="bhex" value="349EFF" type="text"><br/>\
+            </div>\
+            <div id="colourselect" style="margin-left:auto;margin-right:auto;width: 230px; display: none;"></div>\
+            </div>\
+            <div style="clear:both;">\
+            '+version+'\
+            </div>\
+            </div>');
+            
+            for(i = 12; i>0; i--){
+                makeColButton("#colourselect", "btn"+i, "SET!", "20", "", 176, 68, 68 );
+                makeColButton("#dolselect", "btn"+i+"dol", "SET!", "20", "", 176, 68, 68 );
+                makeColButton("#perselect", "btn"+i+"per", "SET!", "20", "", 68, 68, 176 );                 
+            }
+            //RED: <input style="width:10%;" type="text" id="rr"> <input style="width:10%;" type="text" id="rg"> <input style="width:10%;" type="text" id="rb"><br/>\
+            //BLUE:<input style="width:10%;" type="text" id="br"> <input style="width:10%;" type="text" id="bg"> <input style="width:10%;" type="text" id="bb">\
+            //<input name="but1" type="button" value="1" class="" id="but1"><input name="but2" type="button" value="2" class="" id="but2"><input name="but3" type="button" value="3" class="" id="but3"><input name="but4" type="button" value="4" class="" id="but4"><input name="but5" type="button" value="5" class="" id="but5"><input name="but6" type="button" value="6" class="" id="but6"><br/>\
+            //<input name="but7" type="button" value="7" class="" id="but7"><input name="but8" type="button" value="8" class="" id="but8"><input name="but9" type="button" value="9" class="" id="but9"><input name="but10" type="button" value="10" class="" id="but10"><input name="but11" type="button" value="11" class="" id="but11"><input name="but12" type="button" value="12" class="" id="but12">\
+            
+    
+            $( "#options" ).draggable();
+            $( "#options" ).on( "dragstop", function( event, ui ) {
+                localStorage["top"] = $( "#options" ).position().top;
+                localStorage["left"] = $( "#options" ).position().left;
+            });
+
+            makeButtons();    
+            $(".betcard").eq(0).prepend('<div id="hoverred" class="right" style="height: 95%;"><input name="player1" type="submit" value="" class="newbetbuttonred" id="redbtn0"><div id="hoverbuttonred" style="position:absolute;bottom:0px;left:33%;margin:0px;padding:5px;width:230px;height:auto !important;z-index:1;display: none;" class="betcard left redborder"></div></div>');
+            $(".betcard").eq(2).prepend('<div id="hoverblu" class="left" style="height: 95%;"><input name="player2" type="submit" value="" class="newbetbuttonblue" id="bluebtn0"><div id="hoverbuttonblue" style="position:absolute;bottom:0px;right:33%;margin:0px;padding:5px;width:230px;height:auto !important;z-index:1;display: none;" class="betcard right blueborder"></div></div>');
+                
+            /*$('#hoverred').live({
+                mouseenter: function(){ if(JSON.parse(localStorage["sbHover"]) === true ) { $('#hoverbuttonred').removeClass('hidden'); } }, 
+                mouseleave: function(){ if(JSON.parse(localStorage["sbHover"]) === true ) { $('#hoverbuttonred').addClass('hidden'); } }
+            });*/
+            
+            
+            $('#gentext').on("mousedown",
+                function(){$('#geninput').slideToggle("fast"); $('#genselect').slideToggle("fast");}
+            );
+            //.on( "mouseleave", function(){$('#geninput').slideToggle("fast"); $('#genselect').slideToggle("fast"); });
+            
+            $('#thmtext').on("mousedown", function(){$('#thminput').slideToggle("fast"); $('#thmselect').slideToggle("fast");});
+            //.on( "mouseleave",                function(){$('#thminput').slideToggle("fast"); $('#thmselect').slideToggle("fast");            });
+            
+            $('#bettext').on("mousedown", function(){$('#betinput').slideToggle("fast"); $('#betselect').slideToggle("fast");});
+            //.on( "mouseleave", function(){$('#betinput').slideToggle("fast"); $('#betselect').slideToggle("fast");});
+            
+            $('#colourtext').on("mousedown",function(){$('#colourinput').slideToggle("fast"); $('#colourselect').slideToggle("fast");})
+            //.on( "mouseleave", function(){$('#colourinput').slideToggle("fast"); $('#colourselect').slideToggle("fast");});
+            
+            
+            $('#hoverred').on("mouseenter",
+                function(){ if(JSON.parse(localStorage["sbHover"]) === true ) { $('#hoverbuttonred').fadeIn("slow");}
+            }).on( "mouseleave",
+                function(){ $('#hoverbuttonred').fadeOut("slow");});
+            
+            $('#hoverblu').on("mouseenter",
+                function(){ if(JSON.parse(localStorage["sbHover"]) === true ) { $('#hoverbuttonblue').fadeIn("slow");}
+            }).on( "mouseleave",
+                function(){$('#hoverbuttonblue').fadeOut("slow");});
+            
+            $('#fightcard').on( "click", "#redbtn0" ,function(){
+                buttonPress( 'player1' );
+            });
+            
+            $('#fightcard').on( "click", "#bluebtn0" ,function(){
+                buttonPress( 'player2' );
+            });
+            
+            
+$("#fightcard").on('submit', function( e ){
+    e.preventDefault();
+    $.ajax({
+        type: "post",
+        url: "../ajax_place_bet.php",
+        data: $("form").serialize(),
+        success: function () {
+            console.log("YAY");
+        },
+        error: function(){
+            console.log("NAY");
+        }
+    });
+    return false;
+});
+
+            $( "#slider-range-min" ).slider({
+                range: "min",
+                value: 0,
+                min: 0,
+                max: 0,
+                animate: "fast",
+                slide: function( event, ui ) {
+                  $( "#wager" ).val(ui.value);
+                }
+              });
+            
+            $("ul:first").append("<li><button id='optionsbut'>+</button></li>");
+            document.getElementById('optionsbut').onclick = function(){ $("#options").toggle(); };
+            document.getElementById('toggle').onclick = toggleNoti;
+            document.getElementById('toggleButtons').onclick = function() {hover = !hover; localStorage['sbHover'] = hover;}
+            for( i = 1; i < 13; i++){
+                $('body').on( "mousedown", '#btn'+i, callback( i ) );
+                $('body').on( "mousedown", '#btn'+i+'dol', callbackDol( i ) );
+                $('body').on( "mousedown", '#btn'+i+'per', callbackPer( i ) );
+                //document.getElementById('but'+i+'dol').onclick = callbackDol( i );
+                //document.getElementById('but'+i+'per').onclick = callbackPer( i );
+                $('body').on( "mousedown", '#redbtn'+i, callbackRed( i ) );
+                $('body').on( "mousedown", '#blubtn'+i, callbackBlu( i ) );
+            }
+            makeButtons();
+            $(window).resize(setAspectRatioSBP);
+        }, 
+        error: function () {
+            throw new Error("Could not load script " + script);
+        }
+    });
+}
+
+function requireJQUERY(script) {
+    $.ajax({
+        url: script,
+        dataType: "script",
+        async: false,
+        success: function () { 
+            requireUI("http://code.jquery.com/ui/1.10.3/jquery-ui.js");    
+        },
+        error: function () {
+            throw new Error("Could not load script " + script);
+        }
+    });
 }
     
 function requireNOTY(script) {
@@ -1006,18 +1456,23 @@ function requireNOTY(script) {
     $("ul li h2:first").html("");
     //$( '#wagerwrapper .menu' ).addClass("hidden");   
     //$( '#lastbet' ).css("display", "none");
+    $( 'head' ).prepend('<link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.10/themes/base/jquery-ui.css" type="text/css" media="all" />');
     $( 'head' ).prepend('<style>    #wagerwrapper br {        display: none;    }    .goldborder {        border: 1px solid darkgoldenrod !important;        border-top-color: darkgoldenrod !important;        border-top-style: solid;        border-top-width: 1px;\border-right-color: darkgoldenrod !important;        border-right-style: solid;        border-right-width: 1px;        border-bottom-color: darkgoldenrod !important;        border-bottom-style: solid;        border-bottom-width: 1px;        border-left-color: darkgoldenrod !important;\border-left-style: solid;        border-left-width: 1px;}</style>');
     $( 'head' ).prepend('<style>.newbetbuttonred, .newbetbuttonblue{    font-size: 16px;    letter-spacing: 1px;    font-weight: bold;    cursor: pointer;    color: white;    position: relative;    display: block;    padding: 4px;    -webkit-border-radius: 8px;    -moz-border-radius: 8px;    border-radius: 8px;    -webkit-box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);    -moz-box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);    box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);    width: 140px;    height:100%;    text-align: center;    border:none;    background-color: rgb(176, 68, 68);    background-image: -moz-linear-gradient(rgb(221, 109, 109), rgb(176, 68, 68)) no-repeat top left;;    background-image: -webkit-linear-gradient(rgb(221, 109, 109), rgb(176, 68, 68)) no-repeat top left;;    background-image: linear-gradient(rgb(221, 109, 109), rgb(176, 68, 68)) no-repeat top left;;    background-repeat: repeat-x;     background: rgb(176, 68, 68) url(../images/bet1.png) no-repeat center center;    -webkit-transition: all .1s ease;    -moz-transition: all .1s ease;    -ms-transition: all .1s ease;    -o-transition: all .1s ease;    transition: all .1s ease;}.newbetbuttonblue{    -webkit-box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);    -moz-box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);    box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);    background-color: rgb(52, 158, 255);    background-image: -moz-linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));    background-image: -webkit-linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));    background-image: linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));    background-repeat: repeat-x;    background: rgb(52, 158, 255) url(../images/bet1.png) no-repeat center center;}    .newbetbuttonred:active{    -webkit-box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    -moz-box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    position: relative;    top: 6px;}.newbetbuttonblue:active{    -webkit-box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);    -moz-box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);    box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);    position: relative;    top: 6px;}</style>');    
     $( 'head' ).prepend('<style>.newsmbetbuttonred, .newsmbetbuttonblue{    font-size: 16px;    letter-spacing: 1px;    font-weight: bold;    cursor: pointer;    color: white;    position: relative;    display: block;   -webkit-border-radius: 8px;    -moz-border-radius: 8px;    border-radius: 8px;    -webkit-box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);    -moz-box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);    box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);    width: 70px;    height:100%;    text-align: center;    border:none;    background-color: rgb(176, 68, 68);    background-image: -moz-linear-gradient(rgb(221, 109, 109), rgb(176, 68, 68)) no-repeat top left;;    background-image: -webkit-linear-gradient(rgb(221, 109, 109), rgb(176, 68, 68)) no-repeat top left;;    background-image: linear-gradient(rgb(221, 109, 109), rgb(176, 68, 68)) no-repeat top left;;    background-repeat: repeat-x;     background: rgb(176, 68, 68) no-repeat center center;    -webkit-transition: all .1s ease;    -moz-transition: all .1s ease;    -ms-transition: all .1s ease;    -o-transition: all .1s ease;    transition: all .1s ease;}.newsmbetbuttonblue{    -webkit-box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);    -moz-box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);    box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);    background-color: rgb(52, 158, 255);    background-image: -moz-linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));    background-image: -webkit-linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));    background-image: linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));    background-repeat: repeat-x;    background: rgb(52, 158, 255) no-repeat center center;}    .newsmbetbuttonred:active{    -webkit-box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    -moz-box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    position: relative;    top: 6px;}.newsmbetbuttonblue:active{    -webkit-box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);    -moz-box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);    box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);    position: relative;    top: 6px;}</style>');    
-    $( 'head' ).prepend('<style>.blublackodd {background-color:#C0D0FF;} .blublackeven {background-color:#B0C0FF;} .bluwhiteodd {background-color:#000023;} .bluwhiteeven {background-color:#202043;}</style>');
-    $( 'head' ).prepend('<style>.redblackodd {background-color:#FFD0C0;} .redblackeven {background-color:#FFCCB0;} .redwhiteodd {background-color:#230000;} .redwhiteeven {background-color:#432020;}</style>');
-    $( 'head' ).prepend('<style>.blublackoddhl {background-color:#A0B0FF;} .blublackevenhl {background-color:#90A0FF;} .bluwhiteoddhl {background-color:#200043;} .bluwhiteevenhl {background-color:#402063;}</style>');
-    $( 'head' ).prepend('<style>.redblackoddhl {background-color:#FFB0A0;} .redblackevenhl {background-color:#FFA090;} .redwhiteoddhl {background-color:#430020;} .redwhiteevenhl {background-color:#632040;}</style>');
-    
+    $( 'head' ).prepend('<style>.blublackodd {background-color:#DCDCDC;} .blublackeven {background-color:#CCCCCC;} .bluwhiteodd {background-color:#212121;} .bluwhiteeven {background-color:#313131;}</style>');
+    $( 'head' ).prepend('<style>.redblackodd {background-color:#DCDCDC;} .redblackeven {background-color:#CCCCCC;} .redwhiteodd {background-color:#212121;} .redwhiteeven {background-color:#313131;}</style>');
+    $( 'head' ).prepend('<style>.blublackoddhl {background-color:#DDDDDD;} .blublackevenhl {background-color:#EEEEEE;} .bluwhiteoddhl {background-color:#111111;} .bluwhiteevenhl {background-color:#161616;}</style>');
+    $( 'head' ).prepend('<style>.redblackoddhl {background-color:#DDDDDD;} .redblackevenhl {background-color:#EEEEEE;} .redwhiteoddhl {background-color:#111111;} .redwhiteevenhl {background-color:#161616;}</style>');
+    $( 'head' ).prepend('<style>div:hover p{display : block;}</style>')
     //$( 'head' ).prepend('<style>.smredbutton, .smblubutton{    font-size: 16px;    letter-spacing: 1px;    font-weight: bold;    cursor: pointer;    color: white;    position: relative;    display: block;    padding: 4px;    -webkit-border-radius: 8px;    -moz-border-radius: 8px;    border-radius: 8px;    -webkit-box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);    -moz-box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);    box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);    width: 70px;    height:40%;    text-align: center;    border:none;    background-color: rgb(176, 68, 68);  -webkit-transition: all .1s ease;    -moz-transition: all .1s ease;    -ms-transition: all .1s ease;    -o-transition: all .1s ease;    transition: all .1s ease;}.newbetbuttonblue{    -webkit-box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);    -moz-box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);    box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);    background-color: rgb(52, 158, 255);    background-image: -moz-linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));    background-image: -webkit-linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));    background-image: linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));    background-repeat: repeat-x;    background: rgb(52, 158, 255) url(../images/bet1.png) no-repeat center center;}    .smredbutton:active{    -webkit-box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    -moz-box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    position: relative;    top: 6px;}.smblubutton:active{    -webkit-box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);    -moz-box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);    box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);    position: relative;    top: 6px;}</style>');    
     $( 'head' ).prepend('<style>#p1name, #p2name {font-size: 1.0em !important;} p {font-size: .7em !important;margin: 0;line-height: 26px;}</style>');
     $( 'head' ).prepend('<style>.hidden {display: none !important;}</style>');
-    $( 'head' ).prepend('<style>.short {height: 35px !important;}</style>');
+    $( 'head' ).prepend('<style>.short {height: 35px !important;}</style> .pointer {cursor: pointer;} ');
+    $( 'head' ).prepend('<style>.greybutton {background: rgb(66, 66, 66) no-repeat center center !important;  box-shadow: 0px 9px 0px rgba(33, 33, 33, 1), 0px 9px 25px rgba(0,0,0,.7) !important;}</style>');
+    $( 'head' ).prepend('<style>.greyerbutton {background: rgb(66, 66, 66) url(../images/bet1.png) no-repeat center center !important;  box-shadow: 0px 9px 0px rgba(33, 33, 33, 1), 0px 9px 25px rgba(0,0,0,.7) !important;}</style>');
+    $( 'head' ).prepend('<style>.ngreentext {color: #54870F !important;}</style>');
+    $( 'head' ).prepend('<style>.ngoldtext {color: #F4E790 !important;}</style>');
     //$( 'head' ).prepend('<style>#hoverbuttonred, #hoverbuttonblue {display: none !important;} {display: none !important;}</style>');
     //$( 'head' ).prepend('<style>#hoverbuttonred {display: none; } #hoverred:hover ~ #hoverbuttonred {display: block !important;}</style>')
     $( 'head' ).prepend('<style>.redbutton {font-size: 14px;letter-spacing: 1px;font-weight: bold;cursor: pointer;color: white;position: relative;display: block;margin-right:5%;-webkit-border-radius: 8px;-moz-border-radius: 8px;border-radius: 8px;-webkit-box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);-moz-box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);box-shadow: 0px 9px 0px rgba(121, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);width: 45%;height: 35px;text-align: center;border: none;background-color: rgb(176, 68, 68);background-image: -moz-linear-gradient(rgb(221, 109, 109), rgb(176, 68, 68)) no-repeat top left;background-image: -webkit-linear-gradient(rgb(221, 109, 109), rgb(176, 68, 68)) no-repeat top left;background-image: linear-gradient(rgb(221, 109, 109), rgb(176, 68, 68)) no-repeat top left;background-repeat: repeat-x;background: rgb(176, 68, 68) no-repeat center center;-webkit-transition: all .1s ease;-moz-transition: all .1s ease;-ms-transition: all .1s ease;-o-transition: all .1s ease;transition: all .1s ease;margin-bottom:5px;}.blubutton{-webkit-box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);-moz-box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);box-shadow: 0px 9px 0px rgba(13, 113, 204, 1), 0px 9px 25px rgba(0,0,0,.7);background-color: rgb(52, 158, 255);background-image: -moz-linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));background-image: -webkit-linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));background-image: linear-gradient(rgb(52, 158, 255), rgb(81, 68, 176));background-repeat: repeat-x;background: rgb(52, 158, 255)  no-repeat center center;width: 45%;height: 35px;text-align: center;border: none;-webkit-transition: all .1s ease;-moz-transition: all .1s ease;-ms-transition: all .1s ease;-o-transition: all .1s ease;transition: all .1s ease;font-size: 14px;letter-spacing: 1px;font-weight: bold;cursor: pointer;color: white;position: relative;display: block;margin-left:5%;-webkit-border-radius: 8px;-moz-border-radius: 8px;border-radius: 8px;margin-bottom:5px;}.redbutton:active{    -webkit-box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    -moz-box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    box-shadow: 0px 3px 0px rgba(121, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);position: relative;top: 6px;}.blubutton:active{    -webkit-box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);    -moz-box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);    box-shadow: 0px 3px 0px rgba(13, 113, 204, 1), 0px 3px 6px rgba(0,0,0,.9);position: relative;top: 6px;}.protectedred{background-color: rgb(150, 68, 68);-webkit-box-shadow: 0px 9px 0px rgba(101, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);-moz-box-shadow: 0px 9px 0px rgba(101, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);box-shadow: 0px 9px 0px rgba(101, 60, 60, 1), 0px 9px 25px rgba(0,0,0,.7);}.protectedblu{-webkit-box-shadow: 0px 9px 0px rgba(13, 83, 164, 1), 0px 9px 25px rgba(0,0,0,.7);-moz-box-shadow: 0px 9px 0px rgba(13, 83, 164, 1), 0px 9px 25px rgba(0,0,0,.7);box-shadow: 0px 9px 0px rgba(13, 83, 164, 1), 0px 9px 25px rgba(0,0,0,.7);background-color: rgb(52, 128, 205);}.protectedred:active{  -webkit-box-shadow: 0px 3px 0px rgba(101, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    -moz-box-shadow: 0px 3px 0px rgba(101, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);    box-shadow: 0px 3px 0px rgba(101, 60, 60, 1), 0px 3px 6px rgba(0,0,0,.9);}.protectedblu:active{    -webkit-box-shadow: 0px 3px 0px rgba(13, 83, 164, 1), 0px 3px 6px rgba(0,0,0,.9);    -moz-box-shadow: 0px 3px 0px rgba(13, 83, 164, 1), 0px 3px 6px rgba(0,0,0,.9);    box-shadow: 0px 3px 0px rgba(13, 83, 164, 1), 0px 3px 6px rgba(0,0,0,.9);}#redsbbuttonblock{padding-bottom:16px;width:230px;height:100%;position: relative;margin-right:0.5%;}#blusbbuttonblock{padding-bottom:16px;width:230px;height:100%;position: relative;margin-left:0.5%;}.bottom{margin-top:12px;position:relative;bottom:12px;}</style>');
@@ -1029,76 +1484,19 @@ function requireNOTY(script) {
     toggleBlack();
     $("#logo").removeAttr("href");
     $( "#chat" ).css("background-color", "#CDCDCD");
+    $( "#status" ).css("height", "25px");
     //$( '#logo ').html('<img src="http://www.planetbanhammer.com/images/smallogo2.png">');
-    
-    $( 'body' ).append('<div id="options" class="betcard redborder" style="\
-        position: absolute;\
-        top: 41px;\
-        left: 0px;\
-        width:auto !important;\
-        height:auto !important;\
-        display: none;\
-        color: white;\
-    "><button id="toggle">Toggle Notifications</button></br>\
-    <button id="toggleButtons">Toggle Hover Buttons</button></br>\
-    <div>\
-     <div style="float:left;">\
-    Button 1: </br>\
-    <input name="but1" type="text" id="but1val"><input name="but1dol" type="button" value="$" id="but1dol"><input name="but1per" type="button" value="%" id="but1per"></br>\
-    Button 2: </br>\
-    <input name="but2" type="text" id="but2val"><input name="but2dol" type="button" value="$" class="" id="but2dol"><input name="but2per" type="button" value="%" class="" id="but2per"></br>\
-    Button 3: </br>\
-    <input name="but3" type="text" id="but3val"><input name="but3dol" type="button" value="$" class="" id="but3dol"><input name="but3per" type="button" value="%" class="" id="but3per"></br>\
-    Button 4: </br>\
-    <input name="but4" type="text" id="but4val"><input name="but4dol" type="button" value="$" class="" id="but4dol"><input name="but4per" type="button" value="%" class="" id="but4per"></br>\
-    Button 5: </br>\
-    <input name="but5" type="text" id="but5val"><input name="but5dol" type="button" value="$" class="" id="but5dol"><input name="but5per" type="button" value="%" class="" id="but5per"></br>\
-    Button 6: </br>\
-    <input name="but6" type="text" id="but6val"><input name="but6dol" type="button" value="$" class="" id="but6dol"><input name="but6per" type="button" value="%" class="" id="but6per"></br>\
-    </div><div style="float:right;">\
-    Hover Button 1: </br>\
-    <input name="but7" type="text" id="but7val"><input name="but7dol" type="button" value="$" id="but7dol"><input name="but7per" type="button" value="%" id="but7per"></br>\
-    Hover Button 2: </br>\
-    <input name="but8" type="text" id="but8val"><input name="but8dol" type="button" value="$" class="" id="but8dol"><input name="but8per" type="button" value="%" class="" id="but8per"></br>\
-    Hover Button 3: </br>\
-    <input name="but9" type="text" id="but9val"><input name="but9dol" type="button" value="$" class="" id="but9dol"><input name="but9per" type="button" value="%" class="" id="but9per"></br>\
-    Hover Button 4: </br>\
-    <input name="but10" type="text" id="but10val"><input name="but10dol" type="button" value="$" class="" id="but10dol"><input name="but10per" type="button" value="%" class="" id="but10per"></br>\
-    Hover Button 5: </br>\
-    <input name="but11" type="text" id="but11val"><input name="but11dol" type="button" value="$" class="" id="but11dol"><input name="but11per" type="button" value="%" class="" id="but11per"></br>\
-    Hover Button 6: </br>\
-    <input name="but12" type="text" id="but12val"><input name="but12dol" type="button" value="$" class="" id="but12dol"><input name="but12per" type="button" value="%" class="" id="but12per"></br>\
-    </div>\
-    </div>\
-    <div style="clear:both;">\
-    <div style="float:left; width:50%;">\
-    RED: <input style="width:10%;" type="text" id="rr"> <input style="width:10%;" type="text" id="rg"> <input style="width:10%;" type="text" id="rb"><br/>\
-    BLUE:<input style="width:10%;" type="text" id="br"> <input style="width:10%;" type="text" id="bg"> <input style="width:10%;" type="text" id="bb">\
-    </div>\
-    <div style="">\
-    <input name="but1" type="button" value="1" class="" id="but1"><input name="but2" type="button" value="2" class="" id="but2"><input name="but3" type="button" value="3" class="" id="but3"><input name="but4" type="button" value="4" class="" id="but4"><input name="but5" type="button" value="5" class="" id="but5"><input name="but6" type="button" value="6" class="" id="but6"><br/>\
-    <input name="but7" type="button" value="7" class="" id="but7"><input name="but8" type="button" value="8" class="" id="but8"><input name="but9" type="button" value="9" class="" id="but9"><input name="but10" type="button" value="10" class="" id="but10"><input name="but11" type="button" value="11" class="" id="but11"><input name="but12" type="button" value="12" class="" id="but12">\
-    </div>\
-    </div>\
-    <div style="clear:both;">\
-    '+version+'\
-    </div>\
-    </div>');
-    
     $( '#sbettorswrapper' ).css({'overflow-y': 'auto'});
     
-    $(".betcard").eq(0).prepend('<div id="hoverred" class="right" style="height: 95%;"><input name="valred0" type="button" value="" class="newbetbuttonred" id="redbtn0"><div id="hoverbuttonred" style="position:absolute;bottom:0px;left:33%;margin:0px;padding:5px;width:230px;height:auto !important;z-index:1;" class="hidden betcard left redborder"></div></div>');
-    $(".betcard").eq(2).prepend('<div id="hoverblu" class="left" style="height: 95%;"><input name="valblu0" type="button" value="" class="newbetbuttonblue" id="bluebtn0"><div id="hoverbuttonblue" style="position:absolute;bottom:0px;right:33%;margin:0px;padding:5px;width:230px;height:auto !important;z-index:1;" class="hidden betcard right blueborder"></div></div>');
-    
+    $( ".greentext" ).addClass( "ngreentext" );
+    $( ".menu" ).addClass( "ngreentext" );
+
     $("#sbettorswrapper").append('<div id="sbpbettorscount"></div><div id="sbpbettors1" style="width:50%; display:block; float:left;"></div><div id="sbpbettors2" style="width:50%; display:block; float:right;"></div>');
     $( "#sbettorscount" ).remove();
     $("#sbettors1").remove();
     $("#sbettors2").remove();    
     $( ".betbuttonred" ).hide();
     $( ".betbuttonblue" ).hide();
-    
-    makeButtons();
-    
     
     document.getElementById('logo').onclick = toggleBlack;
     //document.getElementById('notification').onclick = notyOptions;
@@ -1122,15 +1520,13 @@ function requireNOTY(script) {
                 hover = JSON.parse(localStorage["sbHover"]);
             }
            
-            require("https://raw.github.com/jaz303/tipsy/master/src/javascripts/jquery.tipsy.js");
-            require("https://raw.github.com/needim/noty/master/js/noty/layouts/top.js");
-            require("http://planetbanhammer.com/inline.js");
-            require("http://planetbanhammer.com/bottomLeft.js");
-            require("http://planetbanhammer.com/topRight.js");
-            require("http://planetbanhammer.com/default.js");
-            require("http://code.jquery.com/ui/1.10.3/jquery-ui.js");
-            
-            update();
+            //require("https://raw.github.com/jaz303/tipsy/master/src/javascripts/jquery.tipsy.js");
+            //require("https://raw.github.com/needim/noty/master/js/noty/layouts/top.js");
+            //require("http://planetbanhammer.com/inline.js");
+            //require("http://planetbanhammer.com/bottomLeft.js");
+            //require("http://planetbanhammer.com/topRight.js");
+            //require("http://planetbanhammer.com/default.js");
+            requireJQUERY("http://code.jquery.com/jquery-1.9.1.js");
             
             /*$( 'body' ).prepend('<div id="dialog" title="Options">\
                     <p>Colour Scheme</p>\
@@ -1145,20 +1541,8 @@ function requireNOTY(script) {
             $( "#radio2" ).click(function() { black = false; toggleBlack(); });
             $( "#dialog" ).dialog();*/
             
-            $("ul:first").append("<li><button id='optionsbut'>+</button></li>");
-            document.getElementById('optionsbut').onclick = function(){ $("#options").toggle(); };
-            document.getElementById('toggle').onclick = toggleNoti;
-            document.getElementById('toggleButtons').onclick = function() { 
-            hover = !hover; localStorage['sbHover'] = hover;
-                if ( hover === true ){
-        var first = noty({layout: 'topRight', text: 'Hover buttons have been enabled!', timeout: 2500, type: 'success'});
-    } else {
-        var first = noty({layout: 'topRight', text: 'Hover buttons have been disabled!', timeout: 2500, type: 'success'});
-    }
-            };
             $("ul:first").append('<li id="pan"><img src="http://planetbanhammer.com/images/pan.png"></li>');
             document.getElementById('pan').onclick = togPan;
-            update();
             getAnn();
         },
         error: function () {
